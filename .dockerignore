@@ -1,0 +1,10 @@
+.git
+.github
+node_modules
+build
+.svelte-kit
+.env
+.env.*
+design_handoff_avagenc_chat
+*.md
+.vscode
