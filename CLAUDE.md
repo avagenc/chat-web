@@ -8,9 +8,12 @@ SvelteKit 5 (runes mode), Tailwind 4, `adapter-node`. Di-deploy ke Cloud Run via
 
 ## Perintah
 
-- `npm run dev` — dev server (Vite, biasanya port 5173)
-- `npm run check` — `svelte-check` (type-check; **tidak** menangkap error runtime)
-- `npm run format` / `npm run lint` — Prettier + ESLint
+Package manager: **Bun** (`bun.lock`; Dockerfile pakai `oven/bun`).
+
+- `bun run dev` — dev server (Vite, biasanya port 5173)
+- `bun run check` — `svelte-check` (type-check; **tidak** menangkap error runtime)
+- `bun run format` / `bun run lint` — Prettier + ESLint
+- `bun install` — pasang dependency
 
 ## Arsitektur
 
