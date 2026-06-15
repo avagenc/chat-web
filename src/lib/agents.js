@@ -18,34 +18,34 @@ export const AGENTS = {
 	ava: {
 		id: 'ava',
 		name: 'Ava',
-		role: 'orkestrator',
+		role: 'orkestrator & musik',
 		init: 'A',
 		varc: 'var(--ava)',
-		desc: 'Orkestrator. Dengerin kamu, lalu koordinasiin tim buat ngerjain.'
+		desc: 'Orkestrator. Dengerin kamu, koordinasiin tim — sekaligus pegang Spotify buat play, pause, dan ganti lagu.'
 	},
 	zee: {
 		id: 'zee',
 		name: 'Zee',
-		role: 'cahaya & suasana',
+		role: 'smart home',
 		init: 'Z',
 		varc: 'var(--zee)',
-		desc: 'Atur cahaya & suasana — lampu, tirai, dan mood ruangan.'
+		desc: 'Tuya smart agent. Kontrol perangkat rumah — lampu, AC, colokan, dan device Tuya lainnya.'
 	},
 	yori: {
 		id: 'yori',
 		name: 'Yori',
-		role: 'musik & audio',
+		role: 'email',
 		init: 'Y',
 		varc: 'var(--yori)',
-		desc: 'Urus musik & audio — playlist, volume, dan suara ruangan.'
+		desc: 'Gmail agent. Baca, rangkum, tulis, dan kirim email lewat akun Gmail-mu.'
 	},
-	niko: {
-		id: 'niko',
-		name: 'Niko',
-		role: 'dapur & sajian',
-		init: 'N',
-		varc: 'var(--niko)',
-		desc: 'Siapin sajian — kopi, teh, dan cemilan langsung dari dapur.'
+	rafal: {
+		id: 'rafal',
+		name: 'Rafal',
+		role: 'kalender',
+		init: 'R',
+		varc: 'var(--rafal)',
+		desc: 'Google Calendar agent. Lihat jadwal dan bikin acara baru di kalendermu.'
 	}
 };
 
@@ -84,64 +84,87 @@ export const SEED = [
 		id: 1,
 		from: 'human',
 		type: 'text',
-		text: 'Pagi. Hari ini pengen santai di rumah aja.',
+		text: 'Pagi. Bantu aku siap-siap mulai hari dong.',
 		time: '08:12'
 	},
 	{
 		id: 2,
 		from: 'ava',
 		type: 'text',
-		text: 'Pagi. Enak banget tuh buat ngademin pikiran. Mau aku bantu siapin suasananya?',
+		text: 'Pagi, Ardian. Siap. Mau aku mulai dari mana — cek jadwal, cek email, atau setel musik dulu?',
 		time: '08:12'
 	},
-	{ id: 3, from: 'human', type: 'text', text: 'Boleh. Mau ke teras baca buku nih.', time: '08:13' },
-	{ id: 4, from: 'ava', type: 'text', text: '@zee', time: '08:13' },
 	{
-		id: 5,
-		from: 'zee',
+		id: 3,
+		from: 'human',
 		type: 'text',
-		text: 'Udah aku nyalain lampu teras dan buka tirainya sedikit, biar cahayanya pas buat baca. Selamat menikmati.',
+		text: 'Setel musik dulu deh biar semangat.',
 		time: '08:13'
 	},
 	{
-		id: 6,
-		from: 'human',
-		type: 'image',
-		src: '/sample-photo.svg',
-		caption: 'View-nya lagi bagus banget pagi ini.',
-		time: '08:15'
-	},
-	{
-		id: 7,
+		id: 4,
 		from: 'ava',
 		type: 'text',
-		text: 'Cakep. Pas banget sama cuaca cerahnya. Mau ditemenin musik pelan?',
+		text: 'Sip, ini aku pegang langsung. Aku play playlist "Morning Boost" di Spotify, volume aku set ke 30%. Tinggal bilang kalau mau di-pause.',
+		time: '08:13'
+	},
+	{
+		id: 5,
+		from: 'human',
+		type: 'text',
+		text: 'Mantap. Hari ini ada acara apa aja di kalender?',
+		time: '08:14'
+	},
+	{ id: 6, from: 'ava', type: 'text', text: '@rafal cek kalender hari ini ya.', time: '08:14' },
+	{
+		id: 7,
+		from: 'rafal',
+		type: 'text',
+		text: 'Hari ini ada 2 acara: "Standup tim" jam 09:30 dan "Review desain Avagenc" jam 14:00. Sisanya kosong, jadi siang agak longgar.',
+		time: '08:14'
+	},
+	{
+		id: 8,
+		from: 'human',
+		type: 'text',
+		text: 'Oke. Ada email penting yang masuk semalam nggak?',
 		time: '08:15'
 	},
-	{ id: 8, from: 'human', type: 'text', text: 'Boleh, yang kalem aja.', time: '08:16' },
-	{ id: 9, from: 'ava', type: 'text', text: '@yori tolong ya, yang kalem.', time: '08:16' },
+	{ id: 9, from: 'ava', type: 'text', text: '@yori coba rangkum inbox-nya.', time: '08:15' },
 	{
 		id: 10,
 		from: 'yori',
 		type: 'text',
-		text: 'Siap. Aku puterin playlist akustik pagi, volume aku kecilin ke 20% biar nggak ganggu bacaan.',
-		time: '08:16'
+		text: 'Ada 3 email baru. Yang penting satu: dari klien soal jadwal demo minggu depan, minta konfirmasi. Dua sisanya newsletter. Mau aku draft-in balasannya?',
+		time: '08:15'
 	},
-	{ id: 11, from: 'human', type: 'text', text: 'Tolong siapin kopi', time: '08:18' },
-	{ id: 12, from: 'ava', type: 'text', text: 'Noted. @niko bikinin kopinya ya.', time: '08:18' },
+	{
+		id: 11,
+		from: 'human',
+		type: 'text',
+		text: 'Nanti aja balasnya. Tolong nyalain AC ruang kerja.',
+		time: '08:17'
+	},
+	{
+		id: 12,
+		from: 'ava',
+		type: 'text',
+		text: 'Noted. @zee nyalain AC ruang kerja ya.',
+		time: '08:17'
+	},
 	{
 		id: 13,
-		from: 'niko',
+		from: 'zee',
 		type: 'text',
-		text: 'Kopi tubruk lagi diseduh, kira-kira 4 menit lagi siap. Nanti aku anter ke teras.',
-		time: '08:18'
+		text: 'AC ruang kerja udah nyala, aku set ke 24°C. Lampu mejanya sekalian aku nyalain biar enak kerja.',
+		time: '08:17'
 	},
 	{ id: 14, from: 'human', type: 'text', text: 'Mantap, makasih semuanya.', time: '08:19' },
 	{
 		id: 15,
 		from: 'ava',
 		type: 'text',
-		text: 'Sama-sama. Selamat nyantai ya, panggil aja kalau butuh apa-apa.',
+		text: 'Sama-sama. Nanti jam 9:15 aku ingetin lagi sebelum standup ya. Selamat beraktivitas.',
 		time: '08:19'
 	}
 ];
@@ -150,18 +173,20 @@ export const SEED_POSTERA = [
 	{
 		id: 1,
 		message:
-			'Human meminta gorden teras ditutup pukul 17.00. Sekarang sudah waktunya, perintahkanlah Zee untuk menutup gorden teras..',
-		awaken_at: '17:00'
+			'Ingatkan human 15 menit sebelum "Standup tim" jam 09:30. Sumber acara dari Google Calendar via Rafal.',
+		awaken_at: '09:15'
 	},
 	{
 		id: 2,
-		message: 'Ingatkan human untuk minum air. Human diketahui jarang minum di sore hari.',
-		awaken_at: '19:30'
+		message:
+			'Human menunda membalas email klien soal jadwal demo. Perintahkan Yori menyiapkan draft balasannya sore ini.',
+		awaken_at: '16:00'
 	},
 	{
 		id: 3,
-		message: 'Playlist malam sudah diqueue sejak tadi. Aktifkan mode tenang via Yori sekarang.',
-		awaken_at: '21:00'
+		message:
+			'Sebelum acara "Review desain Avagenc" jam 14:00, suruh Zee redupkan lampu ruang kerja biar fokus.',
+		awaken_at: '13:50'
 	}
 ];
 

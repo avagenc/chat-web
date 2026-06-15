@@ -2,7 +2,7 @@
    indicator, and the send/retry/orchestrate flow. Replies are local
    simulation — runPlan/planReply is the seam to swap for a real backend. */
 import { persisted } from '../persisted.svelte.js';
-import { SEED, nextId, nowTime, pick } from '../agents.js';
+import { AGENTS, SEED, nextId, nowTime, pick } from '../agents.js';
 import { planReply, sleep, IMAGE_REPLIES } from '../orchestrator.js';
 
 /** @typedef {import('../agents.js').Message} Message */
@@ -24,6 +24,14 @@ const store = persisted('avagenc.messages', /** @type {Message[]} */ (SEED));
 		return m;
 	});
 	if (changed) store.value = /** @type {Message[]} */ (migrated);
+}
+
+// one-time migration: agents get refactored over time (e.g. "niko" was removed).
+// Messages from an agent that no longer exists can't resolve a name/color, so
+// drop them rather than crash the render.
+{
+	const cleaned = store.value.filter((m) => m.from === 'human' || m.from in AGENTS);
+	if (cleaned.length !== store.value.length) store.value = cleaned;
 }
 
 /** @type {{ agent: string } | null} */

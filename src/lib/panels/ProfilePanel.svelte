@@ -14,7 +14,7 @@
 	/** @type {'logout'|null} */
 	let confirm = $state(null);
 	/** @type {Record<string, boolean>} */
-	let conn = $state({ gmail: true, calendar: false, tuya: false });
+	let conn = $state({ gmail: true, calendar: true, spotify: true, tuya: false });
 	let showTopup = $state(false);
 	/** @type {{ el: Element }|null} */
 	let tuyaFloat = $state(null);
@@ -31,6 +31,7 @@
 	const integrations = [
 		{ id: 'gmail', brand: 'gmail', name: 'Gmail', desc: 'Baca & kirim email' },
 		{ id: 'calendar', brand: 'calendar', name: 'Google Calendar', desc: 'Lihat & buat acara' },
+		{ id: 'spotify', brand: 'spotify', name: 'Spotify', desc: 'Play, pause & ganti lagu' },
 		{ id: 'tuya', brand: 'tuya', name: 'Tuya Smart', desc: 'Kontrol perangkat rumah' }
 	];
 

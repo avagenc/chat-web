@@ -52,7 +52,7 @@
 	data-mid={msg.id}
 	style:--agent={a ? a.varc : null}
 >
-	{#if !isHuman}
+	{#if !isHuman && a}
 		<div class="byline">
 			<span
 				class="name name-btn"

@@ -227,18 +227,18 @@
 							<h2>Hello, Human. We have been longing to serve you! What do you need?</h2>
 							<p>SIlahkan coba mulai percakapan dengan contoh pesan berikut:</p>
 							<div class="suggest">
-								<button
-									class="chip"
-									onclick={() => conversation.sendText('Tolong nyalain lampu teras dong')}
+								<button class="chip" onclick={() => conversation.sendText('Kenalan dong!')}
 									>Kenalan dong!</button
 								>
 								<button
 									class="chip"
-									onclick={() => conversation.sendText('Puterin musik yang kalem')}
+									onclick={() => conversation.sendText('Avagenc Chat nih apa ya?')}
 									>Avagenc Chat nih apa ya?</button
 								>
-								<button class="chip" onclick={() => conversation.sendText('Bikinin kopi dong')}
-									>Spotifyku udah terhubung apa belum?</button
+								<button
+									class="chip"
+									onclick={() => conversation.sendText('Kamu bisa bantu apa aja?')}
+									>Kamu bisa bantu apa aja?</button
 								>
 							</div>
 						</div>
