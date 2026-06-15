@@ -3,7 +3,9 @@
    anywhere and read/write its properties. */
 import { persisted } from '../persisted.svelte.js';
 
-const BYPASS_AUTH = false;
+// Dibuka sementara selama masa peninjauan Midtrans agar reviewer dapat
+// mengakses aplikasi (termasuk alur "Isi Ulang") tanpa login Google.
+const BYPASS_AUTH = true;
 
 const authedStore = persisted('avagenc.authed', false);
 

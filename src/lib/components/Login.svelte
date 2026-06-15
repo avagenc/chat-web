@@ -47,8 +47,7 @@
 					<a href={resolve('/')}>Kebijakan Privasi</a> Avagenc.
 				</div>
 				<p class="login-notice">
-					*Website ini masih murni UI/UX dengan data placeholder dikarenakan integrasi ke backend
-					masih dalam tahap pengembangan.
+					*Mode demo. Pembayaran isi ulang saldo diproses melalui Midtrans.
 				</p>
 			</div>
 		</div>
