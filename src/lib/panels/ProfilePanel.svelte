@@ -103,7 +103,7 @@
 
 		<div class="set-group">
 			<div class="group-label">Integrasi</div>
-			<div class="group-note">Hubungkan layanan biar Ava bisa bantu lebih banyak.</div>
+			<div class="group-note">Hubungkan layanan biar Ava dan tim-nya bisa bantu lebih banyak!</div>
 			<div class="set-list">
 				{#each integrations as it (it.id)}
 					<div class="set-row static">

@@ -1,5 +1,5 @@
 <script>
-	import { AGENTS, AGENT_LIST } from '$lib/agents.js';
+	import { AGENTS, AGENT_LIST, SOON_AGENTS } from '$lib/agents.js';
 	import { closeActivePopup } from '$lib/popup.js';
 	import Logo from '$lib/components/Logo.svelte';
 	import Icon from '$lib/components/Icon.svelte';
@@ -11,6 +11,9 @@
 
 	/** @type {string|null} */
 	let openAgent = $state(null);
+	/** @type {string|null} */
+	let openSoon = $state(null);
+	const soonAgent = $derived(SOON_AGENTS.find((a) => a.id === openSoon) ?? null);
 	/** @type {'chat'|'knowledge'|null} */
 	let confirm = $state(null);
 	/** @type {{ id: string, el: Element }|null} */
@@ -81,6 +84,38 @@
 					</div>
 				</div>
 				<p class="agent-detail-desc">{AGENTS[openAgent].desc}</p>
+			</div>
+		{/if}
+	</div>
+
+	<div class="set-group">
+		<div class="group-label">Segera hadir</div>
+		<div class="agent-scroller">
+			{#each SOON_AGENTS as a (a.id)}
+				<button
+					class={'agent-chip soon' + (openSoon === a.id ? ' on' : '')}
+					style:--agent={a.varc}
+					onclick={() => (openSoon = openSoon === a.id ? null : a.id)}
+				>
+					<span class="agent-av"><Logo size={22} variant="cream" /></span>
+					<span class="agent-nm">{a.name}</span>
+					<span class="soon-badge">Soon</span>
+				</button>
+			{/each}
+		</div>
+		{#if soonAgent}
+			<div class="agent-detail" style:--agent={soonAgent.varc}>
+				<div class="agent-detail-head">
+					<span class="agent-av lg"><Logo size={18} variant="cream" /></span>
+					<div>
+						<div class="agent-detail-name">{soonAgent.name}</div>
+						<div class="agent-detail-role">{soonAgent.role}</div>
+					</div>
+				</div>
+				<p class="agent-detail-desc">{soonAgent.desc}</p>
+				<span class="agent-detail-soon">
+					<Icon name="clock" size={13} /> Segera hadir — lagi disiapkan
+				</span>
 			</div>
 		{/if}
 	</div>

@@ -31,6 +31,8 @@
 	--zee: oklch(0.62 0.085 95); /* warm amber  */
 	--yori: oklch(0.58 0.075 155); /* muted sage  */
 	--rafal: oklch(0.59 0.07 248); /* slate clay  */
+	--gojo: oklch(0.6 0.085 150); /* gojek green  */
+	--sophie: oklch(0.62 0.1 42); /* shopee orange */
 
 	--radius: 16px;
 	--radius-sm: 10px;
@@ -1970,6 +1972,50 @@ mark.ta-mention-partial {
 	line-height: 1.5;
 	color: var(--ink-muted);
 	margin: 11px 0 0;
+}
+
+/* ---- teaser ("segera hadir") agents ---- */
+.agent-chip.soon {
+	position: relative;
+}
+.agent-chip.soon .agent-av {
+	filter: grayscale(0.45);
+	opacity: 0.72;
+}
+.agent-chip.soon:hover .agent-av,
+.agent-chip.soon.on .agent-av {
+	filter: grayscale(0);
+	opacity: 1;
+}
+.soon-badge {
+	position: absolute;
+	top: -3px;
+	right: 2px;
+	font-family: var(--sans);
+	font-size: 8.5px;
+	font-weight: 700;
+	letter-spacing: 0.03em;
+	text-transform: uppercase;
+	color: var(--accent-deep);
+	background: var(--surface);
+	border: 1px solid var(--accent-tint-strong);
+	border-radius: 999px;
+	padding: 1px 6px;
+	box-shadow: 0 1px 5px rgba(44, 35, 28, 0.1);
+}
+.agent-detail-soon {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-family: var(--sans);
+	font-size: 11.5px;
+	font-weight: 600;
+	color: var(--accent-deep);
+	background: var(--accent-tint);
+	border: 1px solid var(--accent-tint-strong);
+	border-radius: 999px;
+	padding: 4px 11px;
+	margin-top: 12px;
 }
 
 /* ============================================================

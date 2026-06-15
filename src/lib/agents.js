@@ -52,6 +52,32 @@ export const AGENTS = {
 export const AGENT_LIST = Object.values(AGENTS);
 
 /**
+ * Teaser agents — "segera hadir". Sengaja DIPISAH dari AGENTS: mereka cuma tampil
+ * sebagai teaser di panel info, tidak bisa di-@mention, tidak di-route orchestrator,
+ * dan tidak pernah jadi pengirim pesan. Jangan masukkan ke AGENTS sampai backend-nya
+ * benar-benar ada (kalau tidak, mention/route/render bakal nyari handler yang belum ada).
+ * @type {Agent[]}
+ */
+export const SOON_AGENTS = [
+	{
+		id: 'gojo',
+		name: 'Gojo',
+		role: 'transport & makanan',
+		init: 'G',
+		varc: 'var(--gojo)',
+		desc: 'Gojek agent. Pesan GoRide & GoCar, jajan lewat GoFood, sampai kirim barang via GoSend.'
+	},
+	{
+		id: 'sophie',
+		name: 'Sophie',
+		role: 'belanja',
+		init: 'S',
+		varc: 'var(--sophie)',
+		desc: 'Shopee agent. Cariin barang, bandingin harga, lacak paket, dan checkout keranjang.'
+	}
+];
+
+/**
  * @typedef {Object} Message
  * @property {number} id
  * @property {string} from
