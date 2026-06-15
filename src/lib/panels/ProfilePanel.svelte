@@ -32,7 +32,7 @@
 		{ id: 'gmail', brand: 'gmail', name: 'Gmail', desc: 'Baca & kirim email' },
 		{ id: 'calendar', brand: 'calendar', name: 'Google Calendar', desc: 'Lihat & buat acara' },
 		{ id: 'spotify', brand: 'spotify', name: 'Spotify', desc: 'Play, pause & ganti lagu' },
-		{ id: 'tuya', brand: 'tuya', name: 'Tuya Smart', desc: 'Kontrol perangkat rumah' }
+		{ id: 'tuya', brand: 'tuya', name: 'Tuya Smart', desc: 'Kontrol perangkat smart home' }
 	];
 
 	/** @param {Event} e */

@@ -103,6 +103,10 @@
 	};
 </script>
 
+<svelte:head>
+	<title>{session.authed ? 'Avagenc Chat' : 'Masuk · Avagenc Chat'}</title>
+</svelte:head>
+
 {#if !session.authed}
 	<Login onLogin={() => session.login()} />
 {:else}
@@ -265,6 +269,7 @@
 
 			{#if !session.search.active}
 				<Composer
+					busy={conversation.busy}
 					onSendText={(t) => conversation.sendText(t)}
 					onSendImage={(src, caption) => conversation.sendImage(src, caption)}
 				/>

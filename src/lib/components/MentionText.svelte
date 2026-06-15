@@ -1,7 +1,15 @@
 <script>
+	import { AGENTS } from '$lib/agents.js';
+
 	// Splits text on @mentions and applies search-query highlight in one pass.
-	/** @type {{ text?: string, query?: string }} */
-	let { text, query = '' } = $props();
+	/** @type {{ text?: string, query?: string, onMention?: (agentId: string, el: Element) => void }} */
+	let { text, query = '', onMention } = $props();
+
+	/** Maps a mention token ("@ava") to a known agent id, or null. @param {string} value */
+	function agentId(value) {
+		const id = value.slice(1).toLowerCase();
+		return /** @type {Record<string, any>} */ (AGENTS)[id] ? id : null;
+	}
 
 	/** @typedef {{ type: 'mention'|'text'|'hit', value: string }} Token */
 	/** @param {string} str @param {string} q @returns {Token[]} */
@@ -43,5 +51,20 @@
 	const tokens = $derived(tokenize(text ?? '', query));
 </script>
 
-{#each tokens as t, i (i)}{#if t.type === 'mention'}<span class="mention">{t.value}</span
-		>{:else if t.type === 'hit'}<mark class="hit">{t.value}</mark>{:else}{t.value}{/if}{/each}
+{#each tokens as t, i (i)}{#if t.type === 'mention'}{@const id = agentId(t.value)}{#if id && onMention}<span
+			class="mention mention-btn"
+			role="button"
+			tabindex="0"
+			onclick={(e) => {
+				e.stopPropagation();
+				onMention(id, /** @type {Element} */ (e.currentTarget));
+			}}
+			onkeydown={(e) => {
+				if (e.key === 'Enter' || e.key === ' ') {
+					e.preventDefault();
+					onMention(id, /** @type {Element} */ (e.currentTarget));
+				}
+			}}>{t.value}</span
+		>{:else}<span class="mention">{t.value}</span>{/if}{:else if t.type === 'hit'}<mark
+			class="hit">{t.value}</mark
+		>{:else}{t.value}{/if}{/each}

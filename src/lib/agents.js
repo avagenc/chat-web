@@ -78,6 +78,14 @@ export const USER = {
 
 let __id = 100;
 export const nextId = () => ++__id;
+// nextId is module state that resets to its default on every page load, but
+// message ids are persisted. Seed the counter past any id already in storage
+// so freshly generated ids can never collide with persisted ones (a collision
+// produces duplicate keys in the message list's {#each}, which throws).
+/** @param {number} n */
+export const seedId = (n) => {
+	if (Number.isFinite(n) && n > __id) __id = Math.floor(n);
+};
 
 export const SEED = [
 	{

@@ -4,8 +4,8 @@
 	import Logo from './Logo.svelte';
 
 	/** @typedef {import('$lib/agents.js').Agent} Agent */
-	/** @type {{ onSendText: (t: string) => void, onSendImage: (src: string, caption: string) => void }} */
-	let { onSendText, onSendImage } = $props();
+	/** @type {{ busy?: boolean, onSendText: (t: string) => void, onSendImage: (src: string, caption: string) => void }} */
+	let { busy = false, onSendText, onSendImage } = $props();
 
 	// stub transcripts — replace with a real speech-to-text engine. The mic
 	// records, and on "selesai" the recognised text is dropped into the input
@@ -31,7 +31,7 @@
 	/** @type {HTMLDivElement|null} */
 	let mirror = $state(null);
 
-	const canSend = $derived(text.trim().length > 0 || !!pendingImg);
+	const canSend = $derived(!busy && (text.trim().length > 0 || !!pendingImg));
 
 	const suggestions = $derived.by(() => {
 		const m = mention;
@@ -107,6 +107,7 @@
 	}
 
 	function send() {
+		if (busy) return;
 		if (pendingImg) {
 			onSendImage(pendingImg, text.trim());
 			pendingImg = null;
@@ -222,6 +223,7 @@
 				<button
 					class="compose-btn"
 					onclick={() => (pendingImg = '/sample-photo.svg')}
+					disabled={busy}
 					aria-label="lampirkan gambar"
 					title="Lampirkan gambar"
 				>
@@ -238,9 +240,14 @@
 					<textarea
 						bind:this={ta}
 						class="composer-textarea ta-over-mirror"
-						placeholder={pendingImg ? 'Tambah keterangan…' : 'Ketik pesan…'}
+						placeholder={busy
+							? 'Menunggu balasan agent…'
+							: pendingImg
+								? 'Tambah keterangan…'
+								: 'Ketik pesan…'}
 						value={text}
 						rows="1"
+						disabled={busy}
 						oninput={handleChange}
 						onkeydown={onKey}
 						onscroll={syncScroll}
@@ -255,6 +262,7 @@
 					<button
 						class="compose-btn"
 						onclick={() => (recording = true)}
+						disabled={busy}
 						aria-label="rekam suara"
 						title="Pesan suara"
 					>

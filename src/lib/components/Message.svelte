@@ -42,6 +42,17 @@
 		closeActivePopup();
 		agentPopup = { id: msg.from, el: /** @type {Element} */ (e.currentTarget) };
 	}
+
+	/** Opens the agent info float for a @mention tag clicked inside a bubble.
+	 * @param {string} id @param {Element} el */
+	function handleMentionClick(id, el) {
+		if (agentPopup && agentPopup.id === id && agentPopup.el === el) {
+			agentPopup = null;
+			return;
+		}
+		closeActivePopup();
+		agentPopup = { id, el };
+	}
 </script>
 
 <div
@@ -67,13 +78,6 @@
 				}}>{a.name}</span
 			>
 			<span class="role">· {a.role}</span>
-			{#if agentPopup}
-				<AgentInfoFloat
-					agentId={agentPopup.id}
-					anchor={agentPopup.el}
-					onClose={() => (agentPopup = null)}
-				/>
-			{/if}
 		</div>
 	{/if}
 
@@ -93,13 +97,21 @@
 				tabindex="0"
 				onkeydown={(e) => e.key === 'Enter' && toggleMenu(e)}
 			>
-				<MentionText text={msg.text} {query} />
+				<MentionText text={msg.text} {query} onMention={handleMentionClick} />
 			</div>
 		{/if}
 	</div>
 
 	{#if chatInfo}
 		<BubbleChatInfo {msg} anchor={chatInfo.el} {isHuman} onClose={() => (chatInfo = null)} />
+	{/if}
+
+	{#if agentPopup}
+		<AgentInfoFloat
+			agentId={agentPopup.id}
+			anchor={agentPopup.el}
+			onClose={() => (agentPopup = null)}
+		/>
 	{/if}
 
 	{#if msg.status === 'sending'}

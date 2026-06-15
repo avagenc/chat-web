@@ -365,6 +365,16 @@ button {
 .row.human .mention {
 	color: var(--accent-deep);
 }
+.mention-btn {
+	cursor: pointer;
+	border-radius: 4px;
+	padding: 0 2px;
+	margin: 0 -2px;
+	transition: background 0.14s var(--ease);
+}
+.mention-btn:hover {
+	background: var(--accent-tint);
+}
 
 /* timestamp — always visible */
 .stamp {
@@ -795,6 +805,17 @@ button {
 }
 .compose-btn:active {
 	transform: scale(0.92);
+}
+.compose-btn:disabled {
+	opacity: 0.4;
+	cursor: not-allowed;
+}
+.compose-btn:disabled:hover {
+	background: none;
+	color: var(--ink-muted);
+}
+.composer-textarea:disabled {
+	cursor: not-allowed;
 }
 
 .send-btn {
