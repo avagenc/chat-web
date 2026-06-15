@@ -3,10 +3,7 @@
    anywhere and read/write its properties. */
 import { persisted } from '../persisted.svelte.js';
 
-// TEMP (payment-gateway review week): bypass the sign-in gate so reviewers can
-// open the app directly without signing in. Set back to `false` to restore the
-// login wall once real auth is wired to the backend.
-const BYPASS_AUTH = true;
+const BYPASS_AUTH = false;
 
 const authedStore = persisted('avagenc.authed', false);
 
