@@ -1,25 +1,25 @@
 <script>
-	import { AGENTS, AGENT_LIST, SOON_AGENTS } from '$lib/agents.js';
-	import { closeActivePopup } from '$lib/popup.js';
+	import { AGENT_LIST, SOON_AGENTS } from '$lib/agents.js';
 	import Logo from '$lib/components/Logo.svelte';
 	import Icon from '$lib/components/Icon.svelte';
-	import AgentInfoFloat from '$lib/components/AgentInfoFloat.svelte';
 	import ActionConfirm from '$lib/components/ActionConfirm.svelte';
 
 	/** @type {{ onSearch: () => void, onClearChat: () => void, onClearKnowledge: () => void }} */
 	let { onSearch, onClearChat, onClearKnowledge } = $props();
 
+	// active agents first, then the "segera hadir" teasers — all in one row
+	const allAgents = [
+		...AGENT_LIST.map((a) => ({ ...a, soon: false })),
+		...SOON_AGENTS.map((a) => ({ ...a, soon: true }))
+	];
+
 	/** @type {string|null} */
 	let openAgent = $state(null);
-	/** @type {string|null} */
-	let openSoon = $state(null);
-	const soonAgent = $derived(SOON_AGENTS.find((a) => a.id === openSoon) ?? null);
+	const open = $derived(allAgents.find((a) => a.id === openAgent) ?? null);
 	/** @type {'chat'|'knowledge'|null} */
 	let confirm = $state(null);
-	/** @type {{ id: string, el: Element }|null} */
-	let agentFloat = $state(null);
 
-	const agentCount = Object.keys(AGENTS).length;
+	const agentCount = AGENT_LIST.length;
 
 	const meta = {
 		chat: {
@@ -37,13 +37,6 @@
 			run: () => onClearKnowledge()
 		}
 	};
-
-	/** @param {Event} e @param {string} id */
-	function openAgentFloat(e, id) {
-		e.stopPropagation();
-		closeActivePopup();
-		agentFloat = { id, el: /** @type {Element} */ (e.currentTarget) };
-	}
 </script>
 
 <div class="center info-page-inner" style="position:relative">
@@ -56,66 +49,33 @@
 	<div class="set-group">
 		<div class="group-label">{agentCount} agen</div>
 		<div class="agent-scroller">
-			{#each AGENT_LIST as a (a.id)}
+			{#each allAgents as a (a.id)}
 				<button
-					class={'agent-chip' + (openAgent === a.id ? ' on' : '')}
+					class={'agent-chip' + (a.soon ? ' soon' : '') + (openAgent === a.id ? ' on' : '')}
 					style:--agent={a.varc}
 					onclick={() => (openAgent = openAgent === a.id ? null : a.id)}
 				>
-					<span
-						class="agent-av"
-						role="button"
-						tabindex="0"
-						onclick={(e) => openAgentFloat(e, a.id)}
-						onkeydown={(e) => e.key === 'Enter' && openAgentFloat(e, a.id)}
-						><Logo size={22} variant="cream" /></span
-					>
-					<span class="agent-nm">{a.name}</span>
-				</button>
-			{/each}
-		</div>
-		{#if openAgent}
-			<div class="agent-detail" style:--agent={AGENTS[openAgent].varc}>
-				<div class="agent-detail-head">
-					<span class="agent-av lg"><Logo size={18} variant="cream" /></span>
-					<div>
-						<div class="agent-detail-name">{AGENTS[openAgent].name}</div>
-						<div class="agent-detail-role">{AGENTS[openAgent].role}</div>
-					</div>
-				</div>
-				<p class="agent-detail-desc">{AGENTS[openAgent].desc}</p>
-			</div>
-		{/if}
-	</div>
-
-	<div class="set-group">
-		<div class="group-label">Segera hadir</div>
-		<div class="agent-scroller">
-			{#each SOON_AGENTS as a (a.id)}
-				<button
-					class={'agent-chip soon' + (openSoon === a.id ? ' on' : '')}
-					style:--agent={a.varc}
-					onclick={() => (openSoon = openSoon === a.id ? null : a.id)}
-				>
 					<span class="agent-av"><Logo size={22} variant="cream" /></span>
 					<span class="agent-nm">{a.name}</span>
-					<span class="soon-badge">Soon</span>
+					{#if a.soon}<span class="soon-badge">Soon</span>{/if}
 				</button>
 			{/each}
 		</div>
-		{#if soonAgent}
-			<div class="agent-detail" style:--agent={soonAgent.varc}>
+		{#if open}
+			<div class="agent-detail" style:--agent={open.varc}>
 				<div class="agent-detail-head">
 					<span class="agent-av lg"><Logo size={18} variant="cream" /></span>
 					<div>
-						<div class="agent-detail-name">{soonAgent.name}</div>
-						<div class="agent-detail-role">{soonAgent.role}</div>
+						<div class="agent-detail-name">{open.name}</div>
+						<div class="agent-detail-role">{open.role}</div>
 					</div>
 				</div>
-				<p class="agent-detail-desc">{soonAgent.desc}</p>
-				<span class="agent-detail-soon">
-					<Icon name="clock" size={13} /> Segera hadir — lagi disiapkan
-				</span>
+				<p class="agent-detail-desc">{open.desc}</p>
+				{#if open.soon}
+					<span class="agent-detail-soon">
+						<Icon name="clock" size={13} /> Segera hadir — lagi disiapin
+					</span>
+				{/if}
 			</div>
 		{/if}
 	</div>
@@ -155,13 +115,6 @@
 		</div>
 	</div>
 
-	{#if agentFloat}
-		<AgentInfoFloat
-			agentId={agentFloat.id}
-			anchor={agentFloat.el}
-			onClose={() => (agentFloat = null)}
-		/>
-	{/if}
 	{#if confirm}
 		<ActionConfirm data={meta[confirm]} onCancel={() => (confirm = null)} />
 	{/if}

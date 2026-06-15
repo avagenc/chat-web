@@ -18,7 +18,7 @@ export const AGENTS = {
 	ava: {
 		id: 'ava',
 		name: 'Ava',
-		role: 'orkestrator & musik',
+		role: 'orkestrator & musik (spotify)',
 		init: 'A',
 		varc: 'var(--ava)',
 		desc: 'Orkestrator. Dengerin kamu, koordinasiin tim — sekaligus pegang Spotify buat play, pause, dan ganti lagu.'
@@ -26,7 +26,7 @@ export const AGENTS = {
 	zee: {
 		id: 'zee',
 		name: 'Zee',
-		role: 'smart home',
+		role: 'smart home (tuya smart)',
 		init: 'Z',
 		varc: 'var(--zee)',
 		desc: 'Tuya smart agent. Kontrol perangkat rumah — lampu, AC, colokan, dan device Tuya lainnya.'
@@ -34,7 +34,7 @@ export const AGENTS = {
 	yori: {
 		id: 'yori',
 		name: 'Yori',
-		role: 'email',
+		role: 'email (gmail)',
 		init: 'Y',
 		varc: 'var(--yori)',
 		desc: 'Gmail agent. Baca, rangkum, tulis, dan kirim email lewat akun Gmail-mu.'
@@ -42,7 +42,7 @@ export const AGENTS = {
 	rafal: {
 		id: 'rafal',
 		name: 'Rafal',
-		role: 'kalender',
+		role: 'kalender (google calendar)',
 		init: 'R',
 		varc: 'var(--rafal)',
 		desc: 'Google Calendar agent. Lihat jadwal dan bikin acara baru di kalendermu.'
@@ -62,7 +62,7 @@ export const SOON_AGENTS = [
 	{
 		id: 'gojo',
 		name: 'Gojo',
-		role: 'transport & makanan',
+		role: 'transport & makanan (gojek)',
 		init: 'G',
 		varc: 'var(--gojo)',
 		desc: 'Gojek agent. Pesan GoRide & GoCar, jajan lewat GoFood, sampai kirim barang via GoSend.'
@@ -70,7 +70,7 @@ export const SOON_AGENTS = [
 	{
 		id: 'sophie',
 		name: 'Sophie',
-		role: 'belanja',
+		role: 'belanja (shopee)',
 		init: 'S',
 		varc: 'var(--sophie)',
 		desc: 'Shopee agent. Cariin barang, bandingin harga, lacak paket, dan checkout keranjang.'
