@@ -1412,7 +1412,7 @@ mark.ta-mention-partial {
 	font-size: 15px;
 	font-weight: 600;
 	color: var(--ink);
-	background: var(--surface);
+	background: var(--bg);
 	border: 1px solid var(--line-strong);
 	border-radius: 13px;
 	padding: 14px;
@@ -1424,7 +1424,7 @@ mark.ta-mention-partial {
 }
 .btn-google:hover {
 	border-color: var(--accent);
-	background: var(--surface-2);
+	background: var(--bg-sunk);
 }
 .btn-google:active {
 	transform: scale(0.99);
@@ -3024,7 +3024,9 @@ mark.ta-mention-partial {
 	display: flex;
 	flex-direction: column;
 	padding: 26px 32px;
-	background: var(--bg);
+	/* Sengaja --surface (bukan --bg): bg ditukar dengan kartu preview chat
+	   supaya preview memakai --bg persis seperti kanvas chat asli. */
+	background: var(--surface);
 }
 
 .login-brand {

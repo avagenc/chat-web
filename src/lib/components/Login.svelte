@@ -40,10 +40,19 @@
 					</h1>
 				</div>
 				<div class="login-cta">
-					<button type="button" class="btn-google" onclick={onLogin}>
-						<GoogleG size={18} />
-						Lanjutkan dengan Google
-					</button>
+					<div class="login-card">
+						<div class="login-announce" aria-hidden="true">
+							<span class="login-badge-tag">Baru</span>
+							<span class="login-badge-text"
+								><span class="login-badge-name">Rafal:</span> Siap mengurus Gmail, kontak, &amp;
+								kalendermu.</span
+							>
+						</div>
+						<button type="button" class="btn-google" onclick={onLogin}>
+							<GoogleG size={18} />
+							Lanjutkan dengan Google
+						</button>
+					</div>
 					<div class="login-legal">
 						Dengan masuk, kamu setuju dengan <a href={resolve('/')}>Ketentuan</a> dan
 						<a href={resolve('/')}>Kebijakan Privasi</a> Avagenc.
@@ -59,6 +68,60 @@
 </div>
 
 <style>
+	/* Pengumuman fitur baru dibungkus jadi satu kartu bersama tombol Google:
+	   strip pengumuman di atas (dipisah hairline), tombol menyatu di bawah —
+	   satu border luar, tanpa kesan dua tombol bertumpuk. */
+	.login-card {
+		width: 100%;
+		border: 1px solid var(--line-strong);
+		border-radius: var(--radius);
+		/* --bg supaya kartu tetap kontras di atas halaman login yang kini --surface. */
+		background: var(--bg);
+		overflow: hidden;
+		animation: rise 0.5s var(--ease) 0.16s both;
+	}
+	.login-announce {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding: 8px 14px;
+		border-bottom: 1px solid var(--line);
+		text-align: left;
+	}
+	/* Tombol menyatu di dalam kartu: border & radius sendiri dilepas. */
+	.login-card :global(.btn-google) {
+		border: 0;
+		border-radius: 0;
+		margin: 0;
+		background: transparent;
+	}
+	.login-card :global(.btn-google:hover) {
+		background: var(--bg-sunk);
+	}
+	.login-badge-tag {
+		flex: none;
+		font-family: var(--sans);
+		font-size: 9.5px;
+		font-weight: 600;
+		letter-spacing: 0.03em;
+		text-transform: uppercase;
+		color: var(--accent-deep);
+		background: var(--accent-tint);
+		border-radius: 999px;
+		padding: 2px 8px;
+	}
+	.login-badge-text {
+		font-family: var(--sans);
+		font-size: 11px;
+		line-height: 1.3;
+		color: var(--ink-soft);
+		text-wrap: pretty;
+	}
+	.login-badge-name {
+		font-weight: 600;
+		color: var(--accent-deep);
+	}
+
 	.login-notice {
 		font-family: var(--sans);
 		font-size: 11px;

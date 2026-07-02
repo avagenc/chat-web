@@ -212,7 +212,7 @@
 		pointer-events: none;
 		user-select: none;
 		flex: none;
-		width: min(400px, 100%);
+		width: min(468px, 100%);
 	}
 
 	/* Komposisi dua kolom butuh lebar; di layar sempit sembunyikan kartu
@@ -225,10 +225,11 @@
 
 	.preview-frame {
 		position: relative;
-		height: min(66vh, 540px);
+		height: min(78vh, 648px);
 		display: flex;
 		flex-direction: column;
-		background: var(--surface);
+		/* --bg seperti kanvas chat asli (halaman login-nya yang --surface). */
+		background: var(--bg);
 		border: 1px solid var(--line);
 		border-radius: var(--radius);
 		overflow: hidden;
