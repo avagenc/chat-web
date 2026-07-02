@@ -51,20 +51,22 @@
 	const tokens = $derived(tokenize(text ?? '', query));
 </script>
 
-{#each tokens as t, i (i)}{#if t.type === 'mention'}{@const id = agentId(t.value)}{#if id && onMention}<span
-			class="mention mention-btn"
-			role="button"
-			tabindex="0"
-			onclick={(e) => {
-				e.stopPropagation();
-				onMention(id, /** @type {Element} */ (e.currentTarget));
-			}}
-			onkeydown={(e) => {
-				if (e.key === 'Enter' || e.key === ' ') {
-					e.preventDefault();
+{#each tokens as t, i (i)}{#if t.type === 'mention'}{@const id = agentId(
+			t.value
+		)}{#if id && onMention}<span
+				class="mention mention-btn"
+				role="button"
+				tabindex="0"
+				onclick={(e) => {
+					e.stopPropagation();
 					onMention(id, /** @type {Element} */ (e.currentTarget));
-				}
-			}}>{t.value}</span
-		>{:else}<span class="mention">{t.value}</span>{/if}{:else if t.type === 'hit'}<mark
+				}}
+				onkeydown={(e) => {
+					if (e.key === 'Enter' || e.key === ' ') {
+						e.preventDefault();
+						onMention(id, /** @type {Element} */ (e.currentTarget));
+					}
+				}}>{t.value}</span
+			>{:else}<span class="mention">{t.value}</span>{/if}{:else if t.type === 'hit'}<mark
 			class="hit">{t.value}</mark
 		>{:else}{t.value}{/if}{/each}

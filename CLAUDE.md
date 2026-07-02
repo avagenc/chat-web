@@ -4,8 +4,9 @@ Avagenc Chat — antarmuka chat multi-agent (prototipe UI, balasan masih disimul
 
 > **Catatan buat sesi Claude lain:** sifat "prototipe/simulasi" di atas soal
 > keadaan kode, bukan cara produk dipresentasikan ke publik. Halaman legal
-> `/privacy` & `/terms` sengaja menampilkan produk sebagai layanan nyata demi
-> review OAuth Google — **jangan tambahkan bahasa prototipe/simulasi ke sana.**
+> `/legal` (Privasi + Ketentuan dalam satu halaman) sengaja menampilkan produk
+> sebagai layanan nyata demi review OAuth Google — **jangan tambahkan bahasa
+> prototipe/simulasi ke sana.**
 > Lihat `TODO.md` (bagian Status) untuk konteksnya.
 
 ## Stack
@@ -70,27 +71,38 @@ sudah final — jangan "diperbaiki" tanpa alasan.
 
 ```css
 /* surfaces — hangat, tidak pernah putih murni */
---bg:#FAF6EC;  --bg-sunk:#F4EEE0;  --surface:#FEFCF6;  --surface-2:#FBF7EE;
+--bg: #faf6ec;
+--bg-sunk: #f4eee0;
+--surface: #fefcf6;
+--surface-2: #fbf7ee;
 /* ink — hitam kecokelatan, tidak pernah #000 */
---ink:#2C231C;  --ink-soft:#3A2E24;
---ink-muted:rgba(44,35,28,.52);  --ink-faint:rgba(44,35,28,.34);  --ink-ghost:rgba(44,35,28,.16);
+--ink: #2c231c;
+--ink-soft: #3a2e24;
+--ink-muted: rgba(44, 35, 28, 0.52);
+--ink-faint: rgba(44, 35, 28, 0.34);
+--ink-ghost: rgba(44, 35, 28, 0.16);
 /* hairlines (dipakai menggantikan shadow) */
---line:rgba(44,35,28,.11);  --line-strong:rgba(44,35,28,.17);
+--line: rgba(44, 35, 28, 0.11);
+--line-strong: rgba(44, 35, 28, 0.17);
 /* accent — satu terracotta muted */
---accent:#B5734A;  --accent-deep:#8E5733;
---accent-tint:rgba(181,115,74,.13);  --accent-tint-strong:rgba(181,115,74,.20);
+--accent: #b5734a;
+--accent-deep: #8e5733;
+--accent-tint: rgba(181, 115, 74, 0.13);
+--accent-tint-strong: rgba(181, 115, 74, 0.2);
 /* agent hues — L≈0.60 C≈0.085, cuma beda hue */
---ava: oklch(0.60 0.090 55);    /* terracotta */
---zee: oklch(0.62 0.085 95);    /* warm amber */
---yori:oklch(0.58 0.075 155);   /* muted sage */
---rafal:oklch(0.59 0.070 248);  /* slate clay */
+--ava: oklch(0.6 0.09 55); /* terracotta */
+--zee: oklch(0.62 0.085 95); /* warm amber */
+--yori: oklch(0.58 0.075 155); /* muted sage */
+--rafal: oklch(0.59 0.07 248); /* slate clay */
 /* radii / layout */
---radius:16px;  --radius-sm:10px;  --maxw:720px;
+--radius: 16px;
+--radius-sm: 10px;
+--maxw: 720px;
 /* type */
---serif:"Newsreader", Georgia, serif;
---sans:"Inter Tight", system-ui, sans-serif;
+--serif: 'Newsreader', Georgia, serif;
+--sans: 'Inter Tight', system-ui, sans-serif;
 /* motion */
---ease:cubic-bezier(0.22,0.61,0.36,1);
+--ease: cubic-bezier(0.22, 0.61, 0.36, 1);
 ```
 
 Theming per-agent pakai custom property inline: `style:--agent={a.varc}` (idiom
@@ -115,8 +127,8 @@ round cap/join) via `Icon.svelte` (prop `name`). Tidak perlu library ikon.
 ## Layar / view
 
 Routing "layar" pakai state (`authed`, `panel`, `view`), **bukan URL** — chat
-adalah satu `+page.svelte`. (Kekecualian: `/privacy` & `/terms` yang memang route
-statis; lihat `TODO.md`.)
+adalah satu `+page.svelte`. (Kekecualian: `/legal` yang memang route statis;
+lihat `TODO.md`.)
 
 1. **Login** (`.login-v2`): sign-in Google satu-tap (mock — cuma flip `authed`).
    Brand lockup kiri-atas, hook block terpusat, `.btn-google` (max 340px). Hook
@@ -181,13 +193,13 @@ statis; lihat `TODO.md`.)
   `850–1550ms`, sembunyikan, append pesan agent, jeda ~420ms, giliran berikutnya.
 - **planReply** (`orchestrator.js`, keyword router → urutan giliran):
   - musik/Spotify (`musik, lagu, playlist, putar, setel, play, pause, volume,
-    spotify, akustik, kalem`) → **Ava langsung** (Ava pegang Spotify).
+spotify, akustik, kalem`) → **Ava langsung** (Ava pegang Spotify).
   - email/Gmail (`email, mail, gmail, inbox, surel, balas, kirim ke`) → Ava `@yori`
     lalu balasan **Yori**.
   - kalender (`kalender, jadwal, acara, agenda, meeting, rapat, event, reminder`) →
     Ava `@rafal` lalu **Rafal**.
   - smart home/Tuya (`lampu, terang, gelap, tirai, redup, ac, dingin, panas,
-    colokan, kipas, device, tuya, nyalain, matiin`) → Ava `@zee` lalu **Zee**.
+colokan, kipas, device, tuya, nyalain, matiin`) → Ava `@zee` lalu **Zee**.
   - starter-bubble (kenalan, "apa itu avagenc", "bisa bantu apa", cek Spotify) →
     balasan Ava langsung; sapaan & terima kasih → Ava langsung; else → fallback Ava.
   - tiap cabang `pick()` baris random dari pool — pool = "suara" produk.
@@ -212,6 +224,7 @@ padding kiri composer nambah biar tidak ketutup tombol profil. Layar lebar = kol
 ## State yang dimodelkan
 
 Global (module/store level):
+
 - `authed` (persisted `avagenc.authed`)
 - `messages` (persisted `avagenc.messages`) — `{ id, from, type, text?|caption?+src?|dur?+wave?, time, status? }`
 - `thinking: { agent } | null`
