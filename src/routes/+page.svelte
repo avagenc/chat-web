@@ -107,7 +107,10 @@
 	<title>{session.authed ? 'Avagenc Chat' : 'Masuk · Avagenc Chat'}</title>
 </svelte:head>
 
-{#if !session.authed}
+{#if !session.ready}
+	<!-- Firebase masih memulihkan sesi: tahan render (layar polos sekejap)
+	     supaya user yang sudah login tidak melihat kedip layar Login. -->
+{:else if !session.authed}
 	<Login onLogin={() => session.login()} />
 {:else}
 	<div
@@ -299,8 +302,10 @@
 		{#if session.lightbox}
 			<Lightbox src={session.lightbox} onClose={() => (session.lightbox = null)} />
 		{/if}
-		{#if session.toast}
-			<div class="toast"><Icon name="check" size={15} />{session.toast}</div>
-		{/if}
 	</div>
+{/if}
+
+<!-- di luar gate auth supaya toast error login juga tampil di layar Login -->
+{#if session.toast}
+	<div class="toast"><Icon name="check" size={15} />{session.toast}</div>
 {/if}

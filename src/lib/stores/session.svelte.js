@@ -1,13 +1,38 @@
 /* App-wide UI/session state: auth gate, which panel/view is open,
    lightbox, toast, and search. Runes-in-module — import `session`
-   anywhere and read/write its properties. */
-import { persisted } from '../persisted.svelte.js';
+   anywhere and read/write its properties.
 
-// Dibuka sementara selama masa peninjauan Midtrans agar reviewer dapat
-// mengakses aplikasi (termasuk alur "Isi Ulang") tanpa login Google.
-const BYPASS_AUTH = false;
+   Auth sekarang Firebase beneran (Google sign-in), bukan boolean
+   localStorage lagi. BYPASS_AUTH lama sengaja dibuang, bukan disisakan:
+   dulu ia cuma melewati mock, sekarang ia berarti membolongi auth asli —
+   kebutuhan reviewer diselesaikan dengan akun Google demo, bukan flag. */
+import { browser } from '$app/environment';
+import { watchAuth, signInWithGoogle, signOutFirebase, getIdToken } from '../firebase.js';
 
-const authedStore = persisted('avagenc.authed', false);
+/** @type {import('firebase/auth').User | null} */
+let user = $state(null);
+// false sampai Firebase selesai memulihkan sesi dari storage; dipakai
+// +page.svelte untuk menahan render agar user yang sudah login tidak
+// melihat kedip layar Login.
+let authReady = $state(false);
+
+if (browser) {
+	// key sisa era auth mock — bersihkan supaya tidak nyangkut di localStorage
+	try {
+		localStorage.removeItem('avagenc.authed');
+	} catch {
+		/* ignore */
+	}
+	watchAuth((u) => {
+		user = u;
+		authReady = true;
+	}).catch(() => {
+		// init Firebase gagal (mis. chunk diblokir/offline): tetap tandai ready
+		// supaya layar Login muncul, bukan layar polos selamanya — error
+		// sesungguhnya baru di-toast saat user mencoba login.
+		authReady = true;
+	});
+}
 
 /** @type {'profile'|'postera'|null} */
 let panel = $state(null);
@@ -22,9 +47,23 @@ let search = $state({ active: false, query: '', idx: 0 });
 /** @type {ReturnType<typeof setTimeout>} */
 let toastTimer;
 
+/** @param {string} text */
+function flashToast(text) {
+	toast = text;
+	clearTimeout(toastTimer);
+	toastTimer = setTimeout(() => (toast = null), 2200);
+}
+
 export const session = {
 	get authed() {
-		return BYPASS_AUTH || authedStore.value;
+		return user !== null;
+	},
+	/** true setelah Firebase selesai memulihkan sesi (login maupun tidak) */
+	get ready() {
+		return authReady;
+	},
+	get user() {
+		return user;
 	},
 	get panel() {
 		return panel;
@@ -54,23 +93,43 @@ export const session = {
 		search = v;
 	},
 
-	login() {
-		authedStore.value = true;
+	// Kontrak lama dipertahankan: Login.svelte tetap memanggil session.login().
+	// `authed` baru berubah lewat watchAuth, bukan di-set langsung di sini.
+	async login() {
+		try {
+			await signInWithGoogle();
+		} catch (e) {
+			const code = /** @type {{ code?: string }} */ (e)?.code;
+			// user menutup popup sendiri / klik ulang saat popup masih ada — bukan error
+			if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') return;
+			flashToast(
+				code === 'auth/popup-blocked'
+					? 'Popup diblokir browser. Izinkan popup, lalu coba lagi.'
+					: 'Gagal masuk. Coba lagi.'
+			);
+		}
 	},
-	logout() {
+	async logout() {
 		panel = null;
-		authedStore.value = false;
+		try {
+			await signOutFirebase();
+		} catch {
+			flashToast('Gagal keluar. Coba lagi.');
+		}
+	},
+	/**
+	 * ID token Firebase user aktif — untuk `Authorization: Bearer` saat
+	 * backend asli di-wire nanti (belum dipakai; orchestrator masih simulasi).
+	 * @returns {Promise<string|null>}
+	 */
+	getToken() {
+		return getIdToken();
 	},
 	/** @param {'profile'|'postera'} name */
 	togglePanel(name) {
 		panel = panel === name ? null : name;
 	},
-	/** @param {string} text */
-	flashToast(text) {
-		toast = text;
-		clearTimeout(toastTimer);
-		toastTimer = setTimeout(() => (toast = null), 2200);
-	},
+	flashToast,
 
 	// ---- search controls ----
 	openSearch() {
