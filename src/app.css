@@ -1412,7 +1412,9 @@ mark.ta-mention-partial {
 	font-size: 15px;
 	font-weight: 600;
 	color: var(--ink);
-	background: var(--bg);
+	/* Menyatu dengan bg halaman login (--surface); border membulatlah yang
+	   mengindikasikan tombol, bukan beda warna. */
+	background: var(--surface);
 	border: 1px solid var(--line-strong);
 	border-radius: 13px;
 	padding: 14px;
@@ -1424,7 +1426,7 @@ mark.ta-mention-partial {
 }
 .btn-google:hover {
 	border-color: var(--accent);
-	background: var(--bg-sunk);
+	background: var(--surface-2);
 }
 .btn-google:active {
 	transform: scale(0.99);

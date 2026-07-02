@@ -75,8 +75,9 @@
 		width: 100%;
 		border: 1px solid var(--line-strong);
 		border-radius: var(--radius);
-		/* --bg supaya kartu tetap kontras di atas halaman login yang kini --surface. */
-		background: var(--bg);
+		/* Sengaja menyatu dengan bg halaman (--surface); border membulatlah
+		   yang mengindikasikan area interaktif. */
+		background: var(--surface);
 		overflow: hidden;
 		animation: rise 0.5s var(--ease) 0.16s both;
 	}
@@ -88,15 +89,15 @@
 		border-bottom: 1px solid var(--line);
 		text-align: left;
 	}
-	/* Tombol menyatu di dalam kartu: border & radius sendiri dilepas. */
+	/* Tombol menyatu di dalam kartu: border & radius sendiri dilepas;
+	   bg ikut base (--surface), sama dengan kartu & halaman. */
 	.login-card :global(.btn-google) {
 		border: 0;
 		border-radius: 0;
 		margin: 0;
-		background: transparent;
 	}
 	.login-card :global(.btn-google:hover) {
-		background: var(--bg-sunk);
+		background: var(--surface-2);
 	}
 	.login-badge-tag {
 		flex: none;
