@@ -2,6 +2,7 @@
 	import { resolve } from '$app/paths';
 	import Logo from './Logo.svelte';
 	import GoogleG from './GoogleG.svelte';
+	import LoginChatPreview from './LoginChatPreview.svelte';
 
 	/** @type {{ onLogin: () => void }} */
 	let { onLogin } = $props();
@@ -31,25 +32,28 @@
 			<span class="login-brand-name">Avagenc</span>
 		</div>
 		<div class="login-center">
-			<div class="login-hook">
-				<h1>Ava dan tim multi agentnya siap melayani mu,</h1>
-				<h1 class="hook-accent">
-					{tw.slice(0, shown)}<span class="tw-cursor" aria-hidden="true">|</span>
-				</h1>
-			</div>
-			<div class="login-cta">
-				<button type="button" class="btn-google" onclick={onLogin}>
-					<GoogleG size={18} />
-					Lanjutkan dengan Google
-				</button>
-				<div class="login-legal">
-					Dengan masuk, kamu setuju dengan <a href={resolve('/')}>Ketentuan</a> dan
-					<a href={resolve('/')}>Kebijakan Privasi</a> Avagenc.
+			<div class="login-left">
+				<div class="login-hook">
+					<h1>Ava dan tim multi agentnya siap melayani mu,</h1>
+					<h1 class="hook-accent">
+						{tw.slice(0, shown)}<span class="tw-cursor" aria-hidden="true">|</span>
+					</h1>
 				</div>
-				<p class="login-notice">
-					*Mode demo. Pembayaran isi ulang saldo diproses melalui Midtrans.
-				</p>
+				<div class="login-cta">
+					<button type="button" class="btn-google" onclick={onLogin}>
+						<GoogleG size={18} />
+						Lanjutkan dengan Google
+					</button>
+					<div class="login-legal">
+						Dengan masuk, kamu setuju dengan <a href={resolve('/')}>Ketentuan</a> dan
+						<a href={resolve('/')}>Kebijakan Privasi</a> Avagenc.
+					</div>
+					<p class="login-notice">
+						*Mode demo. Pembayaran isi ulang saldo diproses melalui Midtrans.
+					</p>
+				</div>
 			</div>
+			<LoginChatPreview />
 		</div>
 	</div>
 </div>

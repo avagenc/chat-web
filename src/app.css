@@ -3046,13 +3046,23 @@ mark.ta-mention-partial {
 .login-center {
 	flex: 1;
 	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: center;
+	gap: 64px;
+	padding: 0 40px 40px;
+	animation: rise 0.5s var(--ease) 0.08s both;
+}
+
+.login-left {
+	flex: none;
+	display: flex;
 	flex-direction: column;
 	align-items: center;
 	justify-content: center;
 	text-align: center;
 	gap: 40px;
-	padding: 0 24px 80px;
-	animation: rise 0.5s var(--ease) 0.08s both;
+	max-width: 420px;
 }
 
 .login-hook h1 {
