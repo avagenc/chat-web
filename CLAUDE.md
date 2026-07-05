@@ -51,10 +51,13 @@ File inti:
 /postera/{id}`.
 - `src/lib/stores/session.svelte.js` — auth gate + `profile` (nama/email dari
   akun Google); saat login memicu load semua store, saat logout me-reset-nya.
-- `src/routes/link/callback/+page.svelte` — halaman callback OAuth bersama
-  (Google Workspace & Spotify); route integrasi dari segmen pertama `state`,
-  lalu `POST /{integration}/connection`. URL-nya harus terdaftar verbatim di
-  provider dan jadi env backend `LINK_REDIRECT_URL`.
+- `src/routes/link/callback/[integration]/+page.svelte` — halaman callback OAuth
+  per-integrasi (Google Workspace & Spotify); integrasi dari route param
+  (`page.params.integration`), bukan dari `state` (token HMAC backend, tetap
+  opaque di FE), lalu `POST /{integration}/connection`. Backend menurunkan
+  redirect URI tiap integrasi dari env `WEB_APP_URL` — tiap URL
+  (`WEB_APP_URL/link/callback/{integration}`) harus terdaftar verbatim di
+  provider. Route ini `prerender=false` (`+page.js`).
 - `src/lib/components/`, `src/lib/panels/` — komponen & panel UI.
 
 Setiap agent punya variabel warna CSS `--<id>` di `src/app.css` (mis. `--ava`, `--rafal`).
@@ -165,7 +168,7 @@ round cap/join) via `Icon.svelte` (prop `name`). Tidak perlu library ikon.
 
 Routing "layar" pakai state (`authed`, `panel`, `view`), **bukan URL** — chat
 adalah satu `+page.svelte`. (Kekecualian: `/legal` route statis untuk review
-OAuth, dan `/link/callback` halaman callback OAuth linking.)
+OAuth, dan `/link/callback/[integration]` halaman callback OAuth linking.)
 
 1. **Login** (`.login-v2`): sign-in Google via popup Firebase. Brand lockup
    kiri-atas, hook block terpusat, `.btn-google` (max 340px) di dalam kartu

@@ -1,11 +1,10 @@
 <script>
-	/* Halaman callback OAuth bersama untuk SEMUA integrasi linking.
-	   Provider (Google, Spotify) me-redirect ke sini dengan ?code=&state=;
-	   segmen pertama `state` (`gworkspace` | `spotify`) menentukan integrasi,
-	   lalu code+state diteruskan verbatim ke POST /{integration}/connection.
-	   URL halaman ini harus terdaftar VERBATIM sebagai redirect URI di Google
-	   Cloud Console & Spotify Dashboard, dan jadi nilai env backend
-	   LINK_REDIRECT_URL. */
+	/* Halaman callback OAuth per-integrasi. Provider (Google, Spotify) me-redirect
+	   ke `/link/callback/{integration}` sesuai redirect URI yang di-mint backend
+	   dari WEB_APP_URL. Integrasi diambil dari route param — FE tidak mem-parse
+	   `state` (token HMAC milik backend, tetap opaque): `code`+`state` diteruskan
+	   verbatim ke POST /{integration}/connection. URL tiap integrasi harus
+	   terdaftar verbatim sebagai authorized redirect URI di provider terkait. */
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
@@ -28,19 +27,24 @@
 	});
 
 	async function run() {
+		const integration = page.params.integration ?? '';
+		const name = INTEGRATION_NAMES[integration];
 		const params = page.url.searchParams;
 		const code = params.get('code');
 		const state = params.get('state');
-		const integration = state?.split('.')[0] ?? '';
-		const name = INTEGRATION_NAMES[integration];
 
+		if (!name) {
+			status = 'failed';
+			message = 'Integrasi tidak dikenal. Ulangi penautan dari panel Profil.';
+			return;
+		}
 		if (params.get('error')) {
 			// user menekan cancel di consent screen — tidak perlu memanggil API
 			status = 'failed';
-			message = 'Penautan dibatalkan. Kamu bisa mengulanginya dari panel Profil.';
+			message = `Penautan ${name} dibatalkan. Kamu bisa mengulanginya dari panel Profil.`;
 			return;
 		}
-		if (!code || !state || !name) {
+		if (!code || !state) {
 			status = 'failed';
 			message = 'Link callback tidak valid. Ulangi penautan dari panel Profil.';
 			return;
