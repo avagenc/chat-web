@@ -191,17 +191,21 @@ export const conversation = {
 		await runTurn(msg.text, msg, routeAgent(msg.text));
 	},
 
-	/** Hapus riwayat chat di backend (thread Zep ikut terhapus). */
+	/** Reset percakapan: hapus riwayat chat DAN knowledge sekaligus. Di Zep
+	    keduanya terikat (memori episodik & semantik lahir dari thread yang sama),
+	    jadi reset yang benar = satu operasi `User.Delete` — DELETE /knowledge
+	    menghapus user beserta seluruh thread-nya. Thread kosong dibuat ulang oleh
+	    backend saat pesan berikutnya. 404 = user/graph belum ada = memang bersih. */
 	async clear() {
 		try {
-			const sid = await sessionId();
-			await api(`/sessions/${encodeURIComponent(sid)}/messages`, { method: 'DELETE' });
+			await api('/knowledge', { method: 'DELETE' });
 		} catch (e) {
-			if (!isNotFound(e)) throw e; // belum ada thread = memang sudah kosong
+			if (!isNotFound(e)) throw e; // belum ada data = memang sudah kosong
 		}
 		serverMsgs = [];
 		pending = null;
 		thinking = null;
+		busy = false;
 	},
 
 	/** Reset state lokal (dipanggil saat logout). */

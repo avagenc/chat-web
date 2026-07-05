@@ -4,8 +4,8 @@
 	import Icon from '$lib/components/Icon.svelte';
 	import ActionConfirm from '$lib/components/ActionConfirm.svelte';
 
-	/** @type {{ onSearch: () => void, onClearChat: () => void, onClearKnowledge: () => void }} */
-	let { onSearch, onClearChat, onClearKnowledge } = $props();
+	/** @type {{ onSearch: () => void, onClearChat: () => void }} */
+	let { onSearch, onClearChat } = $props();
 
 	// active agents first, then the "segera hadir" teasers — all in one row
 	const allAgents = [
@@ -16,26 +16,20 @@
 	/** @type {string|null} */
 	let openAgent = $state(null);
 	const open = $derived(allAgents.find((a) => a.id === openAgent) ?? null);
-	/** @type {'chat'|'knowledge'|null} */
-	let confirm = $state(null);
+	/** @type {boolean} */
+	let confirm = $state(false);
 
 	const agentCount = AGENT_LIST.length;
 
-	const meta = {
-		chat: {
-			icon: 'trash',
-			q: 'Hapus riwayat chat?',
-			sub: 'Semua pesan di obrolan ini akan dihapus. Knowledge yang Ava pelajari tetap aman.',
-			btn: 'Hapus riwayat',
-			run: () => onClearChat()
-		},
-		knowledge: {
-			icon: 'brain',
-			q: 'Hapus semua knowledge?',
-			sub: 'Ava dan tim akan lupa preferensi dan kebiasaan yang sudah dipelajari soal kamu. Isi obrolan tidak ikut terhapus. Tindakan ini tidak bisa dibatalkan.',
-			btn: 'Hapus knowledge',
-			run: () => onClearKnowledge()
-		}
+	// Riwayat chat dan knowledge terikat di Zep (memori episodik & semantik lahir
+	// dari thread yang sama), jadi cuma ada satu aksi reset yang menghapus keduanya
+	// sekaligus — bukan dua tombol yang seakan bisa dipisah.
+	const resetMeta = {
+		icon: 'trash',
+		q: 'Reset chat & knowledge?',
+		sub: 'Semua pesan di obrolan ini dan semua yang sudah Ava pelajari soal kamu akan dihapus sekaligus. Tindakan ini tidak bisa dibatalkan.',
+		btn: 'Reset semua',
+		run: () => onClearChat()
 	};
 </script>
 
@@ -96,19 +90,11 @@
 	<div class="set-group">
 		<div class="group-label">Kelola</div>
 		<div class="set-list">
-			<button class="set-row danger" onclick={() => (confirm = 'chat')}>
+			<button class="set-row danger" onclick={() => (confirm = true)}>
 				<span class="ico"><Icon name="trash" size={18} /></span>
 				<span class="txt">
-					<span class="t">Hapus riwayat chat</span>
-					<span class="d">Kosongkan semua pesan di obrolan ini</span>
-				</span>
-				<span class="chev"><Icon name="chev" size={16} /></span>
-			</button>
-			<button class="set-row danger" onclick={() => (confirm = 'knowledge')}>
-				<span class="ico"><Icon name="brain" size={18} /></span>
-				<span class="txt">
-					<span class="t">Hapus knowledge</span>
-					<span class="d">Hal yang Ava ingat soal kamu — terpisah dari isi chat</span>
+					<span class="t">Reset chat &amp; knowledge</span>
+					<span class="d">Hapus semua pesan dan yang Ava pelajari soal kamu</span>
 				</span>
 				<span class="chev"><Icon name="chev" size={16} /></span>
 			</button>
@@ -116,6 +102,6 @@
 	</div>
 
 	{#if confirm}
-		<ActionConfirm data={meta[confirm]} onCancel={() => (confirm = null)} />
+		<ActionConfirm data={resetMeta} onCancel={() => (confirm = false)} />
 	{/if}
 </div>

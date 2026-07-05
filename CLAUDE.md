@@ -210,9 +210,11 @@ OAuth, dan `/link/callback/[integration]` halaman callback OAuth linking.)
    0.18s), ber-hue agent. Muncul selama `POST /ava` in-flight.
 6. **Chat-info page** (`.info-page-inner`): identity block, scroller chip agent
    (aktif + teaser "Soon"; tap → `.agent-detail`), row "Cari di chat", grup
-   "Kelola" dengan dua row destruktif (**Hapus riwayat chat** →
-   `DELETE /sessions/{sid}/messages`, **Hapus knowledge** → `DELETE /knowledge`)
-   masing-masing di-gate `ActionConfirm`.
+   "Kelola" dengan **satu** row destruktif **Reset chat & knowledge** →
+   `DELETE /knowledge` (Zep `User.Delete`: menghapus user beserta seluruh
+   thread-nya, jadi riwayat chat + knowledge ludes sekaligus), di-gate
+   `ActionConfirm`. Episodik & semantik terikat di Zep, jadi disatukan jadi satu
+   aksi — bukan dua tombol yang seakan bisa dipisah.
 7. **Profile panel** (`.sheet.sheet-left`): account card dari akun Google login
    (avatar inisial + badge "G", email pill). **Usage card**: header "Hari ini"
    dengan jam "Diperbarui HH:MM" dan tombol refresh; satu angka besar biaya
@@ -254,8 +256,9 @@ OAuth, dan `/link/callback/[integration]` halaman callback OAuth linking.)
 - **Search**: buka search sembunyikan composer/chrome; `matches` = id pesan yang
   teks/caption-nya memuat query (case-insensitive); `↑/↓`/Enter cycle; match aktif
   scroll ke tengah + `.active-match`.
-- **Clear chat** → `DELETE /sessions/{sid}/messages` + toast; **Clear
-  knowledge** → `DELETE /knowledge` + toast (404 = sudah kosong, tetap sukses);
+- **Reset chat & knowledge** (`conversation.clear()`) → `DELETE /knowledge`
+  (Zep `User.Delete` = hapus thread + graph sekaligus) + toast (404 = sudah
+  kosong, tetap sukses); backend bikin ulang thread kosong saat pesan berikut.
   **Cancel posterum** → `DELETE /postera/{id}` + toast. **Toast**: pill
   bawah-tengah, auto ~2200ms.
 - **Logout** → signOut Firebase; store conversation/postera/wallet di-reset.

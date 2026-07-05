@@ -2,7 +2,6 @@
 	import { session } from '$lib/stores/session.svelte.js';
 	import { conversation } from '$lib/stores/conversation.svelte.js';
 	import { posteraStore } from '$lib/stores/postera.svelte.js';
-	import { api, ApiError } from '$lib/api.js';
 
 	import Login from '$lib/components/Login.svelte';
 	import Icon from '$lib/components/Icon.svelte';
@@ -80,25 +79,16 @@
 			};
 	}
 
+	// Reset percakapan: menghapus riwayat chat sekaligus knowledge (di Zep
+	// keduanya terikat — lihat conversation.clear()).
 	async function clearChat() {
 		session.panel = null;
 		session.view = 'chat';
 		try {
 			await conversation.clear();
-			session.flashToast('Riwayat chat dihapus');
+			session.flashToast('Chat direset');
 		} catch {
-			session.flashToast('Gagal menghapus riwayat. Coba lagi.');
-		}
-	}
-	async function clearKnowledge() {
-		session.panel = null;
-		try {
-			await api('/knowledge', { method: 'DELETE' });
-			session.flashToast('Knowledge dihapus');
-		} catch (e) {
-			// 404 = memang belum ada knowledge — anggap beres
-			if (e instanceof ApiError && e.status === 404) session.flashToast('Knowledge dihapus');
-			else session.flashToast('Gagal menghapus knowledge. Coba lagi.');
+			session.flashToast('Gagal mereset chat. Coba lagi.');
 		}
 	}
 	/** @param {string} id */
@@ -293,11 +283,7 @@
 			{/if}
 		{:else}
 			<main class="canvas info-view">
-				<ChatInfoPage
-					onSearch={() => session.openSearch()}
-					onClearChat={clearChat}
-					onClearKnowledge={clearKnowledge}
-				/>
+				<ChatInfoPage onSearch={() => session.openSearch()} onClearChat={clearChat} />
 			</main>
 		{/if}
 
