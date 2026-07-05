@@ -59,17 +59,29 @@ export const AGENTS = {
 export const AGENT_LIST = Object.values(AGENTS);
 
 /**
- * Tentukan agent tujuan sebuah pesan dari @mention pertama yang cocok dengan
- * roster. Kalau user nge-tag specialist (mis. "@zee nyalain lampu"), pesan itu
- * langsung masuk ke specialist tanpa lewat Ava. Tanpa mention specialist yang
- * dikenal → Ava (orkestrator, default).
+ * Tentukan agent tujuan sebuah pesan dari @mention yang dikenal roster:
+ * - tanpa mention → Ava (orkestrator, default);
+ * - tepat satu agent yang di-mention → langsung ke agent itu (mis. "@zee nyalain
+ *   lampu" masuk ke Zee tanpa lewat Ava — kalau yang di-mention Ava sendiri,
+ *   ya Ava);
+ * - lebih dari satu agent berbeda di-mention → Ava, supaya dia yang
+ *   mengorkestrasi (perintah lintas-specialist sering butuh urutan/kerja
+ *   sekuensial yang cuma Ava yang bisa koordinasikan).
+ *
+ * Mention berulang ke agent yang sama dihitung satu (pakai himpunan unik).
  * @param {string} text
  * @returns {Agent}
  */
 export function routeAgent(text) {
+	/** @type {Set<string>} */
+	const mentioned = new Set();
 	for (const m of (text || '').matchAll(/@(\w+)/g)) {
 		const id = m[1].toLowerCase();
-		if (id in AGENTS) return AGENTS[id];
+		if (id in AGENTS) mentioned.add(id);
+	}
+	if (mentioned.size === 1) {
+		const [only] = mentioned;
+		return AGENTS[only];
 	}
 	return AGENTS.ava;
 }

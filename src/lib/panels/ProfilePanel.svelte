@@ -1,4 +1,5 @@
 <script>
+	import { onMount } from 'svelte';
 	import { AGENTS } from '$lib/agents.js';
 	import { api, ApiError } from '$lib/api.js';
 	import { session } from '$lib/stores/session.svelte.js';
@@ -53,12 +54,12 @@
 	let busyIntg = $state(null);
 	/** @type {{ id: string, name: string }|null} */
 	let confirmDisconnect = $state(null);
+	// Spinner tombol refresh pemakaian di-drive state LOKAL (persis PosteraPanel),
+	// bukan wallet.refreshing global — supaya refresh saldo di latar (tiap giliran
+	// agent) tidak bikin tombol ini ikut berputar.
+	let refreshing = $state(false);
 
-	// Panel di-mount tiap kali dibuka (dirender kondisional di +page.svelte),
-	// jadi efek ini jalan tepat saat panel terbuka: segarkan pemakaian/saldo
-	// dan tarik ulang status semua integrasi — murah dan selalu segar.
-	$effect(() => {
-		wallet.refresh().catch(() => {});
+	function refreshIntegrations() {
 		for (const it of integrations) {
 			api(`/${it.id}/connection`)
 				.then((s) => (conn = { ...conn, [it.id]: !!s?.connected }))
@@ -66,6 +67,15 @@
 				// anggap belum tersambung supaya CTA VIP tetap muncul.
 				.catch(() => (conn = { ...conn, [it.id]: it.kind === 'manual' ? false : null }));
 		}
+	}
+
+	// Panel di-mount tiap kali dibuka (dirender kondisional di +page.svelte),
+	// jadi tarik ulang pemakaian/saldo + status integrasi TEPAT saat terbuka —
+	// bukan reaktif. Persis pola PosteraPanel: refresh saat dibuka & saat diklik,
+	// tidak berulang. (onMount tidak melacak dependency, jadi tidak ada loop.)
+	onMount(() => {
+		refreshUsage();
+		refreshIntegrations();
 	});
 
 	/** Mulai flow OAuth: minta consent URL lalu pindah halaman ke provider.
@@ -126,8 +136,16 @@
 		tuyaFloat = { el: /** @type {Element} */ (e.currentTarget) };
 	}
 
-	function refreshUsage() {
-		wallet.refresh().catch(() => session.flashToast('Gagal memuat pemakaian. Coba lagi.'));
+	async function refreshUsage() {
+		if (refreshing) return;
+		refreshing = true;
+		try {
+			await wallet.refresh();
+		} catch {
+			session.flashToast('Gagal memuat pemakaian. Coba lagi.');
+		} finally {
+			refreshing = false;
+		}
 	}
 </script>
 
@@ -163,10 +181,10 @@
 						<button
 							class="icon-btn sm"
 							onclick={refreshUsage}
-							disabled={wallet.refreshing}
+							disabled={refreshing}
 							aria-label="perbarui pemakaian"
 						>
-							<span class={wallet.refreshing ? 'postera-spin' : ''} style="display:flex">
+							<span class={refreshing ? 'postera-spin' : ''} style="display:flex">
 								<Icon name="retry" size={14} stroke={1.8} />
 							</span>
 						</button>

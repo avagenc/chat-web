@@ -42,10 +42,11 @@ File inti:
   Workspace), `SOON_AGENTS` (teaser), helper waktu.
 - `src/lib/stores/conversation.svelte.js` — sumber kebenaran pesan = thread
   backend (`GET /sessions/{sid}/messages`). Kirim = `POST` ke endpoint agent
-  tujuan: `routeAgent(text)` (di `agents.js`) mengembalikan agent dari
-  `@mention` specialist pertama yang dikenal, jadi nge-tag specialist langsung
-  masuk ke endpoint-nya (`/zee`,`/yori`,`/rafal`) tanpa lewat Ava; tanpa
-  mention → `/ava`. Selama menunggu, thread di-poll (~2.2s) supaya giliran
+  tujuan: `routeAgent(text)` (di `agents.js`) memilih dari himpunan unik
+  `@mention` yang dikenal — tanpa mention → `/ava`; tepat satu agent → langsung
+  ke endpoint-nya (`/zee`,`/yori`,`/rafal`) tanpa lewat Ava; lebih dari satu
+  agent berbeda → `/ava` biar Ava yang orkestrasi (perintah lintas-specialist
+  butuh koordinasi). Selama menunggu, thread di-poll (~2.2s) supaya giliran
   delegasi/specialist muncul live. Pesan human baru dirender optimistis
   (`local-*`, status `sending`) sampai muncul di thread server. Balasan agent
   boleh kosong (Ava delegasi lalu diam) — backend balas 200 body kosong dan
@@ -242,9 +243,9 @@ OAuth, dan `/link/callback/[integration]` halaman callback OAuth linking.)
 
 - **Send text** (`sendText`): append pesan human optimistis (`local-*`,
   `status:"sending"`), tampilkan `Thinking` agent tujuan (`routeAgent`),
-  `POST {agent.endpoint} {message}`. Tanpa @mention specialist → Ava (`/ava`)
-  yang berorkestrasi; dengan @mention specialist → langsung ke endpoint agent
-  itu. Selama in-flight, thread di-poll tiap ~2.2s (`GET /sessions/{sid}/messages`)
+  `POST {agent.endpoint} {message}`. Tanpa mention (atau >1 agent berbeda
+  di-mention) → Ava (`/ava`) yang berorkestrasi; tepat satu agent di-mention →
+  langsung ke endpoint agent itu. Selama in-flight, thread di-poll tiap ~2.2s (`GET /sessions/{sid}/messages`)
   supaya giliran delegasi (`@zee …`) & balasan specialist muncul live —
   orkestrasi sesungguhnya terjadi di backend (Ava + sub-agent ADK). Setelah
   POST selesai: sinkronisasi final thread, lalu refresh wallet.

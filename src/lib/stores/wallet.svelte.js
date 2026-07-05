@@ -35,9 +35,6 @@ export const wallet = {
 	get lastUpdated() {
 		return lastUpdated;
 	},
-	get refreshing() {
-		return refreshing;
-	},
 	get balanceLabel() {
 		return rupiah(balance);
 	},
