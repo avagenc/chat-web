@@ -41,10 +41,15 @@ File inti:
   smart home, Yori=musik/Spotify, Rafal=Gmail+Kontak+Kalender via Google
   Workspace), `SOON_AGENTS` (teaser), helper waktu.
 - `src/lib/stores/conversation.svelte.js` — sumber kebenaran pesan = thread
-  backend (`GET /sessions/{sid}/messages`). Kirim = `POST /ava`; selama
-  menunggu, thread di-poll (~2.2s) supaya giliran delegasi/specialist muncul
-  live. Pesan human baru dirender optimistis (`local-*`, status `sending`)
-  sampai muncul di thread server.
+  backend (`GET /sessions/{sid}/messages`). Kirim = `POST` ke endpoint agent
+  tujuan: `routeAgent(text)` (di `agents.js`) mengembalikan agent dari
+  `@mention` specialist pertama yang dikenal, jadi nge-tag specialist langsung
+  masuk ke endpoint-nya (`/zee`,`/yori`,`/rafal`) tanpa lewat Ava; tanpa
+  mention → `/ava`. Selama menunggu, thread di-poll (~2.2s) supaya giliran
+  delegasi/specialist muncul live. Pesan human baru dirender optimistis
+  (`local-*`, status `sending`) sampai muncul di thread server. Balasan agent
+  boleh kosong (Ava delegasi lalu diam) — backend balas 200 body kosong dan
+  pesan kosong tidak dipersist ke thread.
 - `src/lib/stores/wallet.svelte.js` — saldo (`GET /wallet`) + pemakaian hari
   ini (`GET /wallet/usage/today`); di-refresh setelah tiap giliran agent.
 - `src/lib/stores/postera.svelte.js` — `GET /postera`, batal `DELETE
@@ -215,10 +220,14 @@ OAuth, dan `/link/callback/[integration]` halaman callback OAuth linking.)
    **Integrasi** (`.set-list`), tiap row menampilkan nama agent terkait (dot +
    nama ber-hue agent + "· role"): **Google Workspace** (satu tombol connect
    untuk Gmail+Kontak+Kalender, brand tile = tumpukan 3 logo, agent Rafal),
-   **Spotify** (agent Yori), **Tuya Smart** (agent Zee, chip **VIP** →
-   `TuyaVipFloat`). Tombol: "Hubungkan" → `GET /{i}/auth-url` lalu redirect ke
-   consent; "Terhubung" → confirm → `DELETE /{i}/connection`; status awal dari
-   `GET /{i}/connection`. Footer: **Keluar** → `ActionConfirm`.
+   **Spotify** (agent Yori), **Tuya Smart** (agent Zee). Tombol OAuth
+   (gworkspace/spotify): "Hubungkan" → `GET /{i}/auth-url` lalu redirect ke
+   consent; "Terhubung" → confirm → `DELETE /{i}/connection`. **Tuya** di-link
+   manual (VIP, tanpa OAuth) tapi statusnya tetap dicek: **Terhubung** (badge
+   non-interaktif) kalau `GET /tuya/connection` `{connected:true}`, selain itu
+   chip **VIP** → `TuyaVipFloat`. Status semua integrasi + saldo/pemakaian
+   di-refresh tiap panel dibuka (panel mount ulang tiap kali). Footer:
+   **Keluar** → `ActionConfirm`.
 8. **Top-up modal** (`.topup-modal`): balance card (saldo asli dari wallet),
    4 preset chip (50k/100k/200k/500k), input Rp custom (min Rp 10.000),
    summary, 4 bullet peringatan, tombol lanjut → placeholder Midtrans.
@@ -232,8 +241,10 @@ OAuth, dan `/link/callback/[integration]` halaman callback OAuth linking.)
 ## Interaksi & perilaku
 
 - **Send text** (`sendText`): append pesan human optimistis (`local-*`,
-  `status:"sending"`), tampilkan `Thinking` Ava, `POST /ava {message}`.
-  Selama in-flight, thread di-poll tiap ~2.2s (`GET /sessions/{sid}/messages`)
+  `status:"sending"`), tampilkan `Thinking` agent tujuan (`routeAgent`),
+  `POST {agent.endpoint} {message}`. Tanpa @mention specialist → Ava (`/ava`)
+  yang berorkestrasi; dengan @mention specialist → langsung ke endpoint agent
+  itu. Selama in-flight, thread di-poll tiap ~2.2s (`GET /sessions/{sid}/messages`)
   supaya giliran delegasi (`@zee …`) & balasan specialist muncul live —
   orkestrasi sesungguhnya terjadi di backend (Ava + sub-agent ADK). Setelah
   POST selesai: sinkronisasi final thread, lalu refresh wallet.
