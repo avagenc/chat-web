@@ -70,7 +70,7 @@
 		busyIntg = id;
 		try {
 			const { url } = await api(`/${id}/auth-url`);
-			window.location.href = url; // provider redirect balik ke /link/callback/{id}
+			window.location.href = url; // provider redirect balik ke /{id}/link/callback
 		} catch {
 			busyIntg = null;
 			session.flashToast('Gagal memulai penautan. Coba lagi.');

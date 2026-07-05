@@ -1,6 +1,6 @@
 <script>
 	/* Halaman callback OAuth per-integrasi. Provider (Google, Spotify) me-redirect
-	   ke `/link/callback/{integration}` sesuai redirect URI yang di-mint backend
+	   ke `/{integration}/link/callback` sesuai redirect URI yang di-mint backend
 	   dari WEB_APP_URL. Integrasi diambil dari route param — FE tidak mem-parse
 	   `state` (token HMAC milik backend, tetap opaque): `code`+`state` diteruskan
 	   verbatim ke POST /{integration}/connection. URL tiap integrasi harus

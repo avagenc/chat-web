@@ -51,12 +51,12 @@ File inti:
 /postera/{id}`.
 - `src/lib/stores/session.svelte.js` — auth gate + `profile` (nama/email dari
   akun Google); saat login memicu load semua store, saat logout me-reset-nya.
-- `src/routes/link/callback/[integration]/+page.svelte` — halaman callback OAuth
+- `src/routes/[integration]/link/callback/+page.svelte` — halaman callback OAuth
   per-integrasi (Google Workspace & Spotify); integrasi dari route param
   (`page.params.integration`), bukan dari `state` (token HMAC backend, tetap
   opaque di FE), lalu `POST /{integration}/connection`. Backend menurunkan
   redirect URI tiap integrasi dari env `WEB_APP_URL` — tiap URL
-  (`WEB_APP_URL/link/callback/{integration}`) harus terdaftar verbatim di
+  (`WEB_APP_URL/{integration}/link/callback`) harus terdaftar verbatim di
   provider. Route ini `prerender=false` (`+page.js`).
 - `src/lib/components/`, `src/lib/panels/` — komponen & panel UI.
 
