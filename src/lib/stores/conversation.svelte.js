@@ -36,16 +36,6 @@ let busy = $state(false);
 let loaded = $state(false);
 
 /**
- * Konten yang secara visual kosong: hanya spasi, karakter kontrol, atau format
- * tak terlihat (zero-width space, bidi mark, BOM). Balasan agent yang kosong
- * tidak boleh dipersist backend, tapi kalau toh lolos (mis. model membalas satu
- * karakter tak terlihat), jangan render bubble hampa. @param {string} s
- */
-function isBlank(s) {
-	return s.replace(/[\s\p{Cc}\p{Cf}]/gu, '') === '';
-}
-
-/**
  * Pesan thread Zep → pesan UI.
  * - role "system" = pesan internal (mis. wake-up postera untuk Ava) → tidak dirender.
  * - role "user": name "human" (atau tak dikenal) = user; name agent = giliran
@@ -55,7 +45,7 @@ function isBlank(s) {
  * @returns {Message|null}
  */
 function toUiMessage(m) {
-	if (!m || !m.content || m.role === 'system' || isBlank(m.content)) return null;
+	if (!m || !m.content || m.role === 'system') return null;
 	const name = (m.name || '').toLowerCase();
 	const agent = name in AGENTS ? name : null;
 	const from = m.role === 'user' ? (agent ?? 'human') : (agent ?? 'ava');
