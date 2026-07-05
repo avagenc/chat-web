@@ -11,7 +11,7 @@
    Pesan human yang baru dikirim di-render optimistis (status "sending")
    sampai muncul di thread server — id lokalnya diprefiks "local-" dan tidak
    pernah dipersist; id pesan server = UUID Zep. */
-import { AGENTS, clockTime } from '../agents.js';
+import { AGENTS, clockTime, routeAgent } from '../agents.js';
 import { api, ApiError, sessionId } from '../api.js';
 import { wallet } from './wallet.svelte.js';
 
@@ -99,10 +99,14 @@ async function fetchThread() {
 	}
 }
 
-/** @param {string} text @param {Message} msg pesan optimistis yang dipakai giliran ini */
-async function runTurn(text, msg) {
+/**
+ * @param {string} text
+ * @param {Message} msg pesan optimistis yang dipakai giliran ini
+ * @param {import('../agents.js').Agent} agent agent tujuan (Ava atau specialist yang di-@mention)
+ */
+async function runTurn(text, msg, agent) {
 	busy = true;
-	thinking = { agent: 'ava' };
+	thinking = { agent: agent.id };
 	// poll thread selama orkestrasi supaya giliran delegasi/specialist muncul live
 	const poller = setInterval(() => {
 		fetchThread().catch(() => {
@@ -110,7 +114,9 @@ async function runTurn(text, msg) {
 		});
 	}, POLL_MS);
 	try {
-		await api('/ava', { method: 'POST', body: { message: text } });
+		// routeAgent selalu mengembalikan agent roster (punya endpoint); '/ava'
+		// hanya fallback tipe untuk teaser tanpa endpoint.
+		await api(agent.endpoint ?? '/ava', { method: 'POST', body: { message: text } });
 		msg.status = undefined;
 		await fetchThread().catch(() => {
 			/* balasan sudah diterima; kegagalan sinkronisasi akhir jangan menandai error */
@@ -161,17 +167,19 @@ export const conversation = {
 	/** @param {string} text */
 	async sendText(text) {
 		if (busy || !text.trim()) return;
+		const trimmed = text.trim();
 		/** @type {Message} */
 		const msg = $state({
 			id: `local-${++sendSeq}`,
 			from: 'human',
 			type: 'text',
-			text: text.trim(),
+			text: trimmed,
 			time: clockTime(undefined),
 			status: 'sending'
 		});
 		pending = msg;
-		await runTurn(text.trim(), msg);
+		// @mention specialist → langsung ke endpoint-nya; selain itu ke Ava.
+		await runTurn(trimmed, msg, routeAgent(trimmed));
 	},
 
 	/** Kirim ulang pesan optimistis yang gagal. @param {string} id */
@@ -180,7 +188,7 @@ export const conversation = {
 		if (busy || !msg || msg.id !== id || !msg.text) return;
 		msg.status = 'sending';
 		msg.errorNote = undefined;
-		await runTurn(msg.text, msg);
+		await runTurn(msg.text, msg, routeAgent(msg.text));
 	},
 
 	/** Hapus riwayat chat di backend (thread Zep ikut terhapus). */

@@ -10,8 +10,12 @@
  * @property {string} init
  * @property {string} varc
  * @property {string} desc
+ * @property {string} [endpoint]  route backend `POST` untuk kirim pesan langsung ke agent ini (kosong untuk teaser SOON_AGENTS)
  */
 
+/* Tiap agent punya endpoint HTTP sendiri di backend (repo `chat`, cmd/http):
+   POST /ava, /zee, /yori, /rafal. Ava = orkestrator (default). Yang lain =
+   specialist yang bisa dituju langsung lewat @mention tanpa lewat Ava. */
 /** @type {Record<string, Agent>} */
 export const AGENTS = {
 	ava: {
@@ -20,6 +24,7 @@ export const AGENTS = {
 		role: 'orkestrator',
 		init: 'A',
 		varc: 'var(--ava)',
+		endpoint: '/ava',
 		desc: 'Orkestrator. Dengerin kamu, pahami kebutuhanmu, lalu koordinasiin agent yang tepat — kamu cukup ngobrol dari satu tempat.'
 	},
 	zee: {
@@ -28,6 +33,7 @@ export const AGENTS = {
 		role: 'smart home (tuya smart)',
 		init: 'Z',
 		varc: 'var(--zee)',
+		endpoint: '/zee',
 		desc: 'Tuya smart agent. Kontrol perangkat rumah — lampu, AC, colokan, dan device Tuya lainnya.'
 	},
 	yori: {
@@ -36,6 +42,7 @@ export const AGENTS = {
 		role: 'musik (spotify)',
 		init: 'Y',
 		varc: 'var(--yori)',
+		endpoint: '/yori',
 		desc: 'Spotify music agent. Play, pause, ganti lagu, dan setelin playlist di akun Spotify-mu.'
 	},
 	rafal: {
@@ -44,11 +51,28 @@ export const AGENTS = {
 		role: 'gmail, kontak & kalender',
 		init: 'R',
 		varc: 'var(--rafal)',
+		endpoint: '/rafal',
 		desc: 'Google Workspace agent. Urus Gmail (baca, rangkum, kirim email), kontak, sampai Google Calendar (lihat jadwal & bikin acara).'
 	}
 };
 
 export const AGENT_LIST = Object.values(AGENTS);
+
+/**
+ * Tentukan agent tujuan sebuah pesan dari @mention pertama yang cocok dengan
+ * roster. Kalau user nge-tag specialist (mis. "@zee nyalain lampu"), pesan itu
+ * langsung masuk ke specialist tanpa lewat Ava. Tanpa mention specialist yang
+ * dikenal → Ava (orkestrator, default).
+ * @param {string} text
+ * @returns {Agent}
+ */
+export function routeAgent(text) {
+	for (const m of (text || '').matchAll(/@(\w+)/g)) {
+		const id = m[1].toLowerCase();
+		if (id in AGENTS) return AGENTS[id];
+	}
+	return AGENTS.ava;
+}
 
 /**
  * Teaser agents — "segera hadir". Sengaja DIPISAH dari AGENTS: mereka cuma tampil

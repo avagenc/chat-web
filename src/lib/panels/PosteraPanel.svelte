@@ -1,4 +1,5 @@
 <script>
+	import { onMount } from 'svelte';
 	import { posteraStore } from '$lib/stores/postera.svelte.js';
 	import Icon from '$lib/components/Icon.svelte';
 	import ActionConfirm from '$lib/components/ActionConfirm.svelte';
@@ -24,6 +25,10 @@
 			refreshing = false;
 		}
 	}
+
+	// Panel di-mount tiap kali dibuka (dirender kondisional di +page.svelte),
+	// jadi tarik ulang postera tepat saat panel terbuka.
+	onMount(handleRefresh);
 
 	const cancelMeta = $derived.by(() => {
 		const item = confirmItem;

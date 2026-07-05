@@ -32,34 +32,39 @@
 	/* Satu grant OAuth Google Workspace mencakup Gmail + Kontak + Kalender
 	   sekaligus (backend menyimpan satu refresh token untuk ketiganya), jadi
 	   satu row dengan satu tombol Hubungkan. Tuya di-link manual oleh tim
-	   (VIP onboarding) — tidak lewat OAuth publik. */
+	   (VIP onboarding) — tidak lewat OAuth publik, tapi status koneksinya tetap
+	   dicek (GET /tuya/connection) supaya bisa tampil "Terhubung". */
 	const integrations = [
 		{
 			id: 'gworkspace',
 			name: 'Google Workspace',
 			brands: ['gmail', 'contacts', 'calendar'],
 			agent: AGENTS.rafal,
-			linkable: true
+			kind: 'oauth'
 		},
-		{ id: 'spotify', name: 'Spotify', brands: ['spotify'], agent: AGENTS.yori, linkable: true },
-		{ id: 'tuya', name: 'Tuya Smart', brands: ['tuya'], agent: AGENTS.zee, linkable: false }
+		{ id: 'spotify', name: 'Spotify', brands: ['spotify'], agent: AGENTS.yori, kind: 'oauth' },
+		{ id: 'tuya', name: 'Tuya Smart', brands: ['tuya'], agent: AGENTS.zee, kind: 'manual' }
 	];
 
 	/** null = status belum diketahui (masih fetch / gagal fetch)
 	 * @type {Record<string, boolean|null>} */
-	let conn = $state({ gworkspace: null, spotify: null });
+	let conn = $state({ gworkspace: null, spotify: null, tuya: null });
 	/** id integrasi yang sedang diproses (minta auth-url / disconnect) @type {string|null} */
 	let busyIntg = $state(null);
 	/** @type {{ id: string, name: string }|null} */
 	let confirmDisconnect = $state(null);
 
-	// status koneksi ditarik tiap panel dibuka — murah dan selalu segar
+	// Panel di-mount tiap kali dibuka (dirender kondisional di +page.svelte),
+	// jadi efek ini jalan tepat saat panel terbuka: segarkan pemakaian/saldo
+	// dan tarik ulang status semua integrasi — murah dan selalu segar.
 	$effect(() => {
+		wallet.refresh().catch(() => {});
 		for (const it of integrations) {
-			if (!it.linkable) continue;
 			api(`/${it.id}/connection`)
 				.then((s) => (conn = { ...conn, [it.id]: !!s?.connected }))
-				.catch(() => (conn = { ...conn, [it.id]: null }));
+				// endpoint gagal: OAuth → biarkan "memeriksa…"; manual (Tuya) →
+				// anggap belum tersambung supaya CTA VIP tetap muncul.
+				.catch(() => (conn = { ...conn, [it.id]: it.kind === 'manual' ? false : null }));
 		}
 	});
 
@@ -201,10 +206,13 @@
 								<span class="intg-agent-role">· {it.agent.role}</span>
 							</span>
 						</span>
-						{#if !it.linkable}
-							<button class="intg-vip" onclick={toggleTuya}>
-								<span class="vip-crown">✦</span> VIP
-							</button>
+						{#if conn[it.id] === null}
+							<span class="intg-checking">memeriksa…</span>
+						{:else if conn[it.id] === true && it.kind === 'manual'}
+							<!-- Tuya di-link manual: status saja, tanpa tombol putus -->
+							<span class="intg-on intg-readonly">
+								<Icon name="check" size={13} /> Terhubung
+							</span>
 						{:else if conn[it.id] === true}
 							<button
 								class="intg-on"
@@ -213,14 +221,16 @@
 							>
 								<Icon name="check" size={13} /> Terhubung
 							</button>
-						{:else if conn[it.id] === false}
+						{:else if it.kind === 'manual'}
+							<button class="intg-vip" onclick={toggleTuya}>
+								<span class="vip-crown">✦</span> VIP
+							</button>
+						{:else}
 							<button
 								class="intg-connect"
 								disabled={busyIntg === it.id}
 								onclick={() => connect(it.id)}>Hubungkan</button
 							>
-						{:else}
-							<span class="intg-checking">memeriksa…</span>
 						{/if}
 					</div>
 				{/each}

@@ -2181,6 +2181,12 @@ mark.ta-mention-partial {
 .intg-on:hover {
 	background: oklch(0.55 0.09 150 / 0.16);
 }
+/* status non-interaktif (mis. Tuya yang di-link manual): tampil sebagai badge,
+   tidak bisa di-klik untuk memutus */
+.intg-on.intg-readonly {
+	cursor: default;
+	pointer-events: none;
+}
 .intg-connect {
 	font-family: var(--sans);
 	font-size: 12.5px;
