@@ -9,7 +9,7 @@
 	import BubbleChatInfo from './BubbleChatInfo.svelte';
 
 	/** @typedef {import('$lib/agents.js').Message} Message */
-	/** @type {{ msg: Message, grouped?: boolean, onOpenImage: (src: string) => void, onRetry: (id: number) => void, query?: string, activeMatch?: boolean }} */
+	/** @type {{ msg: Message, grouped?: boolean, onOpenImage: (src: string) => void, onRetry: (id: string) => void, query?: string, activeMatch?: boolean }} */
 	let { msg, grouped = false, onOpenImage, onRetry, query = '', activeMatch = false } = $props();
 
 	const isHuman = $derived(msg.from === 'human');
@@ -119,7 +119,11 @@
 	{:else if msg.status === 'error'}
 		<div class="msg-meta error">
 			<Icon name="alert" size={14} />
-			<span>Gagal terkirim.</span>
+			<span
+				>{msg.errorNote === 'saldo'
+					? 'Saldo tidak cukup — isi ulang dulu ya.'
+					: 'Gagal terkirim.'}</span
+			>
 			<button class="retry-btn" onclick={() => onRetry(msg.id)}>
 				<Icon name="retry" size={13} /> Coba lagi
 			</button>

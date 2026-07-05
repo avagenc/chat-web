@@ -8,6 +8,9 @@
    kebutuhan reviewer diselesaikan dengan akun Google demo, bukan flag. */
 import { browser } from '$app/environment';
 import { watchAuth, signInWithGoogle, signOutFirebase, getIdToken } from '../firebase.js';
+import { conversation } from './conversation.svelte.js';
+import { posteraStore } from './postera.svelte.js';
+import { wallet } from './wallet.svelte.js';
 
 /** @type {import('firebase/auth').User | null} */
 let user = $state(null);
@@ -17,15 +20,30 @@ let user = $state(null);
 let authReady = $state(false);
 
 if (browser) {
-	// key sisa era auth mock — bersihkan supaya tidak nyangkut di localStorage
+	// key sisa era mock/simulasi — bersihkan supaya tidak nyangkut di localStorage
+	// (messages & postera kini datang dari backend, bukan localStorage lagi)
 	try {
 		localStorage.removeItem('avagenc.authed');
+		localStorage.removeItem('avagenc.messages');
+		localStorage.removeItem('avagenc.postera');
 	} catch {
 		/* ignore */
 	}
 	watchAuth((u) => {
+		const wasAuthed = user !== null;
 		user = u;
 		authReady = true;
+		if (u) {
+			// login (atau sesi dipulihkan): tarik data awal dari backend
+			conversation.load();
+			posteraStore.load().catch(() => {});
+			wallet.refresh().catch(() => {});
+		} else if (wasAuthed) {
+			// logout: buang state milik user sebelumnya
+			conversation.reset();
+			posteraStore.reset();
+			wallet.reset();
+		}
 	}).catch(() => {
 		// init Firebase gagal (mis. chunk diblokir/offline): tetap tandai ready
 		// supaya layar Login muncul, bukan layar polos selamanya — error
@@ -64,6 +82,15 @@ export const session = {
 	},
 	get user() {
 		return user;
+	},
+	/** Identitas tampilan dari akun Google yang sedang login. */
+	get profile() {
+		const name = user?.displayName || user?.email || 'Human';
+		return {
+			name,
+			email: user?.email ?? '',
+			initial: (name[0] || 'H').toUpperCase()
+		};
 	},
 	get panel() {
 		return panel;
@@ -118,8 +145,8 @@ export const session = {
 		}
 	},
 	/**
-	 * ID token Firebase user aktif — untuk `Authorization: Bearer` saat
-	 * backend asli di-wire nanti (belum dipakai; orchestrator masih simulasi).
+	 * ID token Firebase user aktif — dipakai api.js untuk header
+	 * `Authorization: Bearer` ke backend.
 	 * @returns {Promise<string|null>}
 	 */
 	getToken() {

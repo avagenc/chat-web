@@ -8,6 +8,7 @@
 	const SRC = {
 		gmail: '/gmail.webp',
 		calendar: '/google-calendar.webp',
+		contacts: '/google-contacts.webp',
 		tuya: '/tuya-smart.webp',
 		spotify: '/spotify.webp'
 	};

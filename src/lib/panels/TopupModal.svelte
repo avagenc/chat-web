@@ -1,5 +1,6 @@
 <script>
 	import { portal } from '$lib/portal.js';
+	import { wallet } from '$lib/stores/wallet.svelte.js';
 	import Icon from '$lib/components/Icon.svelte';
 	import MidtransInfoModal from '$lib/components/MidtransInfoModal.svelte';
 
@@ -37,7 +38,7 @@
 		<div class="topup-body">
 			<div class="topup-balance">
 				<span class="tb-label">Saldo saat ini</span>
-				<span class="tb-val">Rp 148.500</span>
+				<span class="tb-val">{wallet.balanceLabel}</span>
 				<span class="tb-tag">tersedia</span>
 			</div>
 

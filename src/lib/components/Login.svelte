@@ -44,8 +44,7 @@
 						<div class="login-announce" aria-hidden="true">
 							<span class="login-badge-tag">Baru</span>
 							<span class="login-badge-text"
-								><span class="login-badge-name">Rafal:</span> Siap mengurus Gmail, kontak, &amp;
-								kalendermu.</span
+								><span class="login-badge-name">Rafal:</span> Siap mengurus Gmail, kontak, &amp; kalendermu.</span
 							>
 						</div>
 						<button type="button" class="btn-google" onclick={onLogin}>
@@ -54,8 +53,8 @@
 						</button>
 					</div>
 					<div class="login-legal">
-						Dengan masuk, kamu setuju dengan <a href={resolve('/')}>Ketentuan</a> dan
-						<a href={resolve('/')}>Kebijakan Privasi</a> Avagenc.
+						Dengan masuk, kamu setuju dengan <a href={resolve('/legal')}>Ketentuan</a> dan
+						<a href={resolve('/legal')}>Kebijakan Privasi</a> Avagenc.
 					</div>
 					<p class="login-notice">
 						*Mode demo. Pembayaran isi ulang saldo diproses melalui Midtrans.

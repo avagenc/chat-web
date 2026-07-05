@@ -1,5 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
+	import { resolve } from '$app/paths';
 
 	// TOC groups — anchors match the section ids one-to-one, in document order.
 	const tocGroups = [
@@ -80,7 +81,7 @@
 <div class="legalx">
 	<div class="lx-topfade" aria-hidden="true"></div>
 
-	<a class="lx-wordmark" href="/" aria-label="Avagenc">
+	<a class="lx-wordmark" href={resolve('/')} aria-label="Avagenc">
 		<img class="lw-mark" src="/avagenc-ink.svg" alt="" />
 		<span class="lw-name">Avagenc</span>
 	</a>

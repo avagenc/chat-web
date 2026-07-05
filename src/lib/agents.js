@@ -1,6 +1,5 @@
 /* ============================================================
-   Avagenc — agents, user, seed data, time/wave helpers
-   (ported from reference/data.jsx + USER from screens.jsx)
+   Avagenc — agents & time helpers
    ============================================================ */
 
 /**
@@ -18,10 +17,10 @@ export const AGENTS = {
 	ava: {
 		id: 'ava',
 		name: 'Ava',
-		role: 'orkestrator & musik (spotify)',
+		role: 'orkestrator',
 		init: 'A',
 		varc: 'var(--ava)',
-		desc: 'Orkestrator. Dengerin kamu, koordinasiin tim — sekaligus pegang Spotify buat play, pause, dan ganti lagu.'
+		desc: 'Orkestrator. Dengerin kamu, pahami kebutuhanmu, lalu koordinasiin agent yang tepat — kamu cukup ngobrol dari satu tempat.'
 	},
 	zee: {
 		id: 'zee',
@@ -34,18 +33,18 @@ export const AGENTS = {
 	yori: {
 		id: 'yori',
 		name: 'Yori',
-		role: 'email (gmail)',
+		role: 'musik (spotify)',
 		init: 'Y',
 		varc: 'var(--yori)',
-		desc: 'Gmail agent. Baca, rangkum, tulis, dan kirim email lewat akun Gmail-mu.'
+		desc: 'Spotify music agent. Play, pause, ganti lagu, dan setelin playlist di akun Spotify-mu.'
 	},
 	rafal: {
 		id: 'rafal',
 		name: 'Rafal',
-		role: 'kalender (google calendar)',
+		role: 'gmail, kontak & kalender',
 		init: 'R',
 		varc: 'var(--rafal)',
-		desc: 'Google Calendar agent. Lihat jadwal dan bikin acara baru di kalendermu.'
+		desc: 'Google Workspace agent. Urus Gmail (baca, rangkum, kirim email), kontak, sampai Google Calendar (lihat jadwal & bikin acara).'
 	}
 };
 
@@ -53,9 +52,8 @@ export const AGENT_LIST = Object.values(AGENTS);
 
 /**
  * Teaser agents — "segera hadir". Sengaja DIPISAH dari AGENTS: mereka cuma tampil
- * sebagai teaser di panel info, tidak bisa di-@mention, tidak di-route orchestrator,
- * dan tidak pernah jadi pengirim pesan. Jangan masukkan ke AGENTS sampai backend-nya
- * benar-benar ada (kalau tidak, mention/route/render bakal nyari handler yang belum ada).
+ * sebagai teaser di panel info, tidak bisa di-@mention, dan tidak pernah jadi
+ * pengirim pesan. Jangan masukkan ke AGENTS sampai backend-nya benar-benar ada.
  * @type {Agent[]}
  */
 export const SOON_AGENTS = [
@@ -79,153 +77,34 @@ export const SOON_AGENTS = [
 
 /**
  * @typedef {Object} Message
- * @property {number} id
+ * @property {string} id
  * @property {string} from
  * @property {'text'|'image'} type
  * @property {string} [text]
  * @property {string} [caption]
  * @property {string} [src]
- * @property {string} time
+ * @property {string} time  jam tampil "HH:MM"
+ * @property {string} [at]  timestamp ISO dari backend (untuk stamp lengkap)
  * @property {string} [status]
+ * @property {string} [errorNote] penyebab gagal kirim — 'saldo' = 402 dari backend
  */
 
 /**
  * @typedef {Object} Posterum
- * @property {number} id
+ * @property {string} id
  * @property {string} message
- * @property {string} awaken_at
+ * @property {string} awaken_at  label waktu bangun yang sudah diformat
  */
-
-export const USER = {
-	name: 'Ardian',
-	email: 'ardian@naturallyfunny.dev',
-	initial: 'A'
-};
-
-let __id = 100;
-export const nextId = () => ++__id;
-// nextId is module state that resets to its default on every page load, but
-// message ids are persisted. Seed the counter past any id already in storage
-// so freshly generated ids can never collide with persisted ones (a collision
-// produces duplicate keys in the message list's {#each}, which throws).
-/** @param {number} n */
-export const seedId = (n) => {
-	if (Number.isFinite(n) && n > __id) __id = Math.floor(n);
-};
-
-export const SEED = [
-	{
-		id: 1,
-		from: 'human',
-		type: 'text',
-		text: 'Pagi. Bantu aku siap-siap mulai hari dong.',
-		time: '08:12'
-	},
-	{
-		id: 2,
-		from: 'ava',
-		type: 'text',
-		text: 'Pagi, Ardian. Siap. Mau aku mulai dari mana — cek jadwal, cek email, atau setel musik dulu?',
-		time: '08:12'
-	},
-	{
-		id: 3,
-		from: 'human',
-		type: 'text',
-		text: 'Setel musik dulu deh biar semangat.',
-		time: '08:13'
-	},
-	{
-		id: 4,
-		from: 'ava',
-		type: 'text',
-		text: 'Sip, ini aku pegang langsung. Aku play playlist "Morning Boost" di Spotify, volume aku set ke 30%. Tinggal bilang kalau mau di-pause.',
-		time: '08:13'
-	},
-	{
-		id: 5,
-		from: 'human',
-		type: 'text',
-		text: 'Mantap. Hari ini ada acara apa aja di kalender?',
-		time: '08:14'
-	},
-	{ id: 6, from: 'ava', type: 'text', text: '@rafal cek kalender hari ini ya.', time: '08:14' },
-	{
-		id: 7,
-		from: 'rafal',
-		type: 'text',
-		text: 'Hari ini ada 2 acara: "Standup tim" jam 09:30 dan "Review desain Avagenc" jam 14:00. Sisanya kosong, jadi siang agak longgar.',
-		time: '08:14'
-	},
-	{
-		id: 8,
-		from: 'human',
-		type: 'text',
-		text: 'Oke. Ada email penting yang masuk semalam nggak?',
-		time: '08:15'
-	},
-	{ id: 9, from: 'ava', type: 'text', text: '@yori coba rangkum inbox-nya.', time: '08:15' },
-	{
-		id: 10,
-		from: 'yori',
-		type: 'text',
-		text: 'Ada 3 email baru. Yang penting satu: dari klien soal jadwal demo minggu depan, minta konfirmasi. Dua sisanya newsletter. Mau aku draft-in balasannya?',
-		time: '08:15'
-	},
-	{
-		id: 11,
-		from: 'human',
-		type: 'text',
-		text: 'Nanti aja balasnya. Tolong nyalain AC ruang kerja.',
-		time: '08:17'
-	},
-	{
-		id: 12,
-		from: 'ava',
-		type: 'text',
-		text: 'Noted. @zee nyalain AC ruang kerja ya.',
-		time: '08:17'
-	},
-	{
-		id: 13,
-		from: 'zee',
-		type: 'text',
-		text: 'AC ruang kerja udah nyala, aku set ke 24°C. Lampu mejanya sekalian aku nyalain biar enak kerja.',
-		time: '08:17'
-	},
-	{ id: 14, from: 'human', type: 'text', text: 'Mantap, makasih semuanya.', time: '08:19' },
-	{
-		id: 15,
-		from: 'ava',
-		type: 'text',
-		text: 'Sama-sama. Nanti jam 9:15 aku ingetin lagi sebelum standup ya. Selamat beraktivitas.',
-		time: '08:19'
-	}
-];
-
-export const SEED_POSTERA = [
-	{
-		id: 1,
-		message:
-			'Ingatkan human 15 menit sebelum "Standup tim" jam 09:30. Sumber acara dari Google Calendar via Rafal.',
-		awaken_at: '09:15'
-	},
-	{
-		id: 2,
-		message:
-			'Human menunda membalas email klien soal jadwal demo. Perintahkan Yori menyiapkan draft balasannya sore ini.',
-		awaken_at: '16:00'
-	},
-	{
-		id: 3,
-		message:
-			'Sebelum acara "Review desain Avagenc" jam 14:00, suruh Zee redupkan lampu ruang kerja biar fokus.',
-		awaken_at: '13:50'
-	}
-];
 
 export function nowTime() {
 	const d = new Date();
+	return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+/** @param {string|undefined} iso @returns {string} "HH:MM" lokal */
+export function clockTime(iso) {
+	const d = iso ? new Date(iso) : new Date();
+	if (Number.isNaN(d.getTime())) return nowTime();
 	return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
@@ -245,11 +124,12 @@ const ID_MONTHS = [
 	'November',
 	'Desember'
 ];
-/** @param {string} [time] */
-export function fullStamp(time) {
-	const d = new Date();
-	return `${ID_DAYS[d.getDay()]}, ${d.getDate()} ${ID_MONTHS[d.getMonth()]} ${d.getFullYear()} · pukul ${time || nowTime()}`;
+/**
+ * @param {string} [time] jam "HH:MM" (fallback saat `at` tidak ada)
+ * @param {string} [at] timestamp ISO pesan — dipakai agar tanggalnya ikut tanggal pesan, bukan hari ini
+ */
+export function fullStamp(time, at) {
+	const parsed = at ? new Date(at) : new Date();
+	const d = Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+	return `${ID_DAYS[d.getDay()]}, ${d.getDate()} ${ID_MONTHS[d.getMonth()]} ${d.getFullYear()} · pukul ${time || clockTime(at)}`;
 }
-
-/** @type {<T>(arr: T[]) => T} */
-export const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];

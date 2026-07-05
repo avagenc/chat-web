@@ -1,4 +1,4 @@
-// Client-only SPA: state lives in localStorage and the UI is a single
-// stateful screen, so there is nothing meaningful to server-render.
+// Client-only SPA: semua data ditarik dari backend dengan kredensial Firebase
+// milik user di browser, jadi tidak ada yang berarti untuk di-server-render.
 export const ssr = false;
 export const prerender = true;

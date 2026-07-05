@@ -61,11 +61,20 @@ export async function signOutFirebase() {
 }
 
 /**
- * ID token user aktif — bahan header `Authorization: Bearer <token>` saat
- * backend asli di-wire nanti. SDK me-refresh token kedaluwarsa otomatis.
+ * ID token user aktif — bahan header `Authorization: Bearer <token>` untuk
+ * backend. SDK me-refresh token kedaluwarsa otomatis.
  * @returns {Promise<string|null>} null kalau belum login
  */
 export async function getIdToken() {
 	const auth = await getFirebaseAuth();
 	return auth.currentUser ? auth.currentUser.getIdToken() : null;
+}
+
+/**
+ * UID Firebase user aktif — bahan id sesi chat yang deterministik per user.
+ * @returns {Promise<string|null>} null kalau belum login
+ */
+export async function getUid() {
+	const auth = await getFirebaseAuth();
+	return auth.currentUser ? auth.currentUser.uid : null;
 }

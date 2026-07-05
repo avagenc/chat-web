@@ -2,7 +2,7 @@
 	import { session } from '$lib/stores/session.svelte.js';
 	import { conversation } from '$lib/stores/conversation.svelte.js';
 	import { posteraStore } from '$lib/stores/postera.svelte.js';
-	import { USER } from '$lib/agents.js';
+	import { api, ApiError } from '$lib/api.js';
 
 	import Login from '$lib/components/Login.svelte';
 	import Icon from '$lib/components/Icon.svelte';
@@ -80,20 +80,35 @@
 			};
 	}
 
-	function clearChat() {
-		conversation.clear();
+	async function clearChat() {
 		session.panel = null;
 		session.view = 'chat';
-		session.flashToast('Riwayat chat dihapus');
+		try {
+			await conversation.clear();
+			session.flashToast('Riwayat chat dihapus');
+		} catch {
+			session.flashToast('Gagal menghapus riwayat. Coba lagi.');
+		}
 	}
-	function clearKnowledge() {
+	async function clearKnowledge() {
 		session.panel = null;
-		session.flashToast('Knowledge dihapus');
+		try {
+			await api('/knowledge', { method: 'DELETE' });
+			session.flashToast('Knowledge dihapus');
+		} catch (e) {
+			// 404 = memang belum ada knowledge — anggap beres
+			if (e instanceof ApiError && e.status === 404) session.flashToast('Knowledge dihapus');
+			else session.flashToast('Gagal menghapus knowledge. Coba lagi.');
+		}
 	}
-	/** @param {number} id */
-	function cancelPosterum(id) {
-		posteraStore.cancel(id);
-		session.flashToast('Posterum dibatalkan');
+	/** @param {string} id */
+	async function cancelPosterum(id) {
+		try {
+			await posteraStore.cancel(id);
+			session.flashToast('Posterum dibatalkan');
+		} catch {
+			session.flashToast('Gagal membatalkan posterum. Coba lagi.');
+		}
 	}
 
 	/** @param {number} i */
@@ -176,10 +191,10 @@
 				onclick={() => session.togglePanel('profile')}
 				aria-label="profil"
 			>
-				<span class="mini-avatar">{USER.initial}</span>
+				<span class="mini-avatar">{session.profile.initial}</span>
 				<span class="profile-tip">
-					<span class="pt-name">{USER.name}</span>
-					<span class="pt-email">{USER.email}</span>
+					<span class="pt-name">{session.profile.name}</span>
+					<span class="pt-email">{session.profile.email}</span>
 				</span>
 			</button>
 		{/if}
@@ -227,12 +242,15 @@
 		<!-- main area -->
 		{#if session.view === 'chat'}
 			<main class="canvas" bind:this={canvas}>
-				{#if conversation.empty}
+				{#if !conversation.loaded}
+					<!-- riwayat masih ditarik dari backend — tahan render supaya
+					     empty-state tidak berkedip sebelum fetch pertama selesai -->
+				{:else if conversation.empty}
 					<div class="center" style="display:flex;flex-direction:column;flex:1;min-height:100%">
 						<div class="empty">
 							<div class="mark"><Logo size={26} variant="accent" /></div>
 							<h2>Hello, Human. We have been longing to serve you! What do you need?</h2>
-							<p>SIlahkan coba mulai percakapan dengan contoh pesan berikut:</p>
+							<p>Silakan coba mulai percakapan dengan contoh pesan berikut:</p>
 							<div class="suggest">
 								<button class="chip" onclick={() => conversation.sendText('Kenalan dong!')}
 									>Kenalan dong!</button
@@ -271,11 +289,7 @@
 			</main>
 
 			{#if !session.search.active}
-				<Composer
-					busy={conversation.busy}
-					onSendText={(t) => conversation.sendText(t)}
-					onSendImage={(src, caption) => conversation.sendImage(src, caption)}
-				/>
+				<Composer busy={conversation.busy} onSendText={(t) => conversation.sendText(t)} />
 			{/if}
 		{:else}
 			<main class="canvas info-view">

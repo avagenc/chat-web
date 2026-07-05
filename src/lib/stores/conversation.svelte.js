@@ -1,76 +1,137 @@
-/* Conversation state: message list (persisted), the live "thinking"
-   indicator, and the send/retry/orchestrate flow. Replies are local
-   simulation — runPlan/planReply is the seam to swap for a real backend. */
-import { persisted } from '../persisted.svelte.js';
-import { AGENTS, SEED, nextId, seedId, nowTime, pick } from '../agents.js';
-import { planReply, sleep, IMAGE_REPLIES } from '../orchestrator.js';
+/* Conversation state di atas backend asli (repo `chat`, cmd/http).
+
+   Sumber kebenaran pesan = memori episodik backend:
+   GET /sessions/{sid}/messages (thread Zep). Kirim pesan = POST /ava; Ava
+   mendelegasikan ke specialist di server, dan SETIAP giliran (delegasi Ava,
+   balasan specialist, jawaban akhir) tercatat ke thread yang sama dengan
+   `name` pembicara ("human"/"ava"/"zee"/"yori"/"rafal"). Karena POST /ava
+   baru selesai setelah seluruh orkestrasi kelar, selama menunggu kita
+   POLL thread supaya giliran agent muncul satu-satu seperti group chat.
+
+   Pesan human yang baru dikirim di-render optimistis (status "sending")
+   sampai muncul di thread server — id lokalnya diprefiks "local-" dan tidak
+   pernah dipersist; id pesan server = UUID Zep. */
+import { AGENTS, clockTime } from '../agents.js';
+import { api, ApiError, sessionId } from '../api.js';
+import { wallet } from './wallet.svelte.js';
 
 /** @typedef {import('../agents.js').Message} Message */
 
-/** @type {{ value: Message[] }} */
-const store = persisted('avagenc.messages', /** @type {Message[]} */ (SEED));
+/** Batas riwayat yang diambil sekali muat. */
+const HISTORY_LASTN = 200;
+/** Jeda antar-poll selama menunggu balasan orkestrasi. */
+const POLL_MS = 2200;
 
-// one-time migration: voice notes are no longer supported. Any legacy voice
-// message left in localStorage would render as an empty bubble, so replace it
-// with the equivalent text request.
-{
-	let changed = false;
-	const migrated = store.value.map((m) => {
-		const type = /** @type {{ type: string }} */ (m).type;
-		if (type !== 'text' && type !== 'image') {
-			changed = true;
-			return { id: m.id, from: m.from, type: 'text', text: 'Tolong siapin kopi', time: m.time };
-		}
-		return m;
-	});
-	if (changed) store.value = /** @type {Message[]} */ (migrated);
-}
-
-// one-time migration: agents get refactored over time (e.g. "niko" was removed).
-// Messages from an agent that no longer exists can't resolve a name/color, so
-// drop them rather than crash the render.
-{
-	const cleaned = store.value.filter((m) => m.from === 'human' || m.from in AGENTS);
-	if (cleaned.length !== store.value.length) store.value = cleaned;
-}
-
-// Advance the id counter past the highest id already persisted. Without this,
-// a page reload resets nextId() while old messages keep their (higher) ids, so
-// the next sent message collides — breaking the keyed {#each} and, with it, the
-// send button. Done once at load; nextId() stays monotonic from here.
-seedId(store.value.reduce((max, m) => (m.id > max ? m.id : max), 0));
-
+/** @type {Message[]} */
+let serverMsgs = $state([]);
+/** Pesan human optimistis yang belum terlihat di thread server. @type {Message|null} */
+let pending = $state(null);
 /** @type {{ agent: string } | null} */
 let thinking = $state(null);
-
-// true while a turn is in flight (human message sending, or agents replying).
-// The composer reads this to lock input until the current response finishes —
-// same as mainstream AI chat apps.
+// true selama satu giliran berjalan (POST /ava masih in-flight) — composer
+// mengunci input sampai orkestrasi selesai.
 let busy = $state(false);
+// riwayat pertama sudah termuat (atau dipastikan kosong) — dipakai menahan
+// empty-state supaya tidak berkedip sebelum fetch pertama selesai.
+let loaded = $state(false);
 
-// reassign-style updates (mirror the React setMessages calls) so reactivity fires
-/** @param {(m: Message[]) => Message[]} updater */
-function setMessages(updater) {
-	store.value = updater(store.value);
+/**
+ * Pesan thread Zep → pesan UI.
+ * - role "system" = pesan internal (mis. wake-up postera untuk Ava) → tidak dirender.
+ * - role "user": name "human" (atau tak dikenal) = user; name agent = giliran
+ *   delegasi Ava ke specialist (tampil sebagai pesan Ava, mis. "@zee …").
+ * - role "assistant": name = agent pengirim.
+ * @param {{ content?: string, role?: string, name?: string|null, uuid?: string|null, created_at?: string|null }} m
+ * @returns {Message|null}
+ */
+function toUiMessage(m) {
+	if (!m || !m.content || m.role === 'system') return null;
+	const name = (m.name || '').toLowerCase();
+	const agent = name in AGENTS ? name : null;
+	const from = m.role === 'user' ? (agent ?? 'human') : (agent ?? 'ava');
+	const at = m.created_at ?? undefined;
+	return {
+		id: m.uuid || crypto.randomUUID(),
+		from,
+		type: 'text',
+		text: m.content,
+		time: clockTime(at),
+		at
+	};
 }
 
-/** @param {{ from: string, text: string }[]} plan */
-async function runPlan(plan) {
-	for (const turn of plan) {
-		thinking = { agent: turn.from };
-		await sleep(850 + Math.random() * 700);
+/** @param {unknown} e */
+function isNotFound(e) {
+	return e instanceof ApiError && e.status === 404;
+}
+
+let sendSeq = 0; // id pesan optimistis; tidak dipersist, cukup unik se-sesi tab
+
+// Nomor urut fetch: poll yang masih in-flight tidak boleh menimpa hasil fetch
+// yang dimulai belakangan (mis. sinkronisasi final setelah POST /ava) dengan
+// snapshot yang lebih lama.
+let fetchSeq = 0;
+
+async function fetchThread() {
+	const seq = ++fetchSeq;
+	const sid = await sessionId();
+	try {
+		const list = await api(`/sessions/${encodeURIComponent(sid)}/messages?lastn=${HISTORY_LASTN}`);
+		if (seq !== fetchSeq) return; // sudah ada fetch yang lebih baru
+		/** @type {Message[]} */
+		const mapped = [];
+		for (const m of list?.messages ?? []) {
+			const ui = toUiMessage(m);
+			if (ui) mapped.push(ui);
+		}
+		serverMsgs = mapped;
+		// pesan optimistis sudah sampai di thread server → lepas duplikatnya
+		if (pending && mapped.some((m) => m.from === 'human' && m.text === pending?.text)) {
+			pending = null;
+		}
+	} catch (e) {
+		if (isNotFound(e)) {
+			// thread belum pernah dibuat (belum ada run pertama) — memang kosong
+			if (seq === fetchSeq) serverMsgs = [];
+			return;
+		}
+		throw e;
+	}
+}
+
+/** @param {string} text @param {Message} msg pesan optimistis yang dipakai giliran ini */
+async function runTurn(text, msg) {
+	busy = true;
+	thinking = { agent: 'ava' };
+	// poll thread selama orkestrasi supaya giliran delegasi/specialist muncul live
+	const poller = setInterval(() => {
+		fetchThread().catch(() => {
+			/* poll gagal boleh diam — fetch final setelah POST yang menentukan */
+		});
+	}, POLL_MS);
+	try {
+		await api('/ava', { method: 'POST', body: { message: text } });
+		msg.status = undefined;
+		await fetchThread().catch(() => {
+			/* balasan sudah diterima; kegagalan sinkronisasi akhir jangan menandai error */
+		});
+	} catch (e) {
+		msg.status = 'error';
+		if (e instanceof ApiError && e.status === 402) {
+			msg.errorNote = 'saldo';
+		}
+	} finally {
+		clearInterval(poller);
 		thinking = null;
-		setMessages((m) => [
-			...m,
-			{ id: nextId(), from: turn.from, type: 'text', text: turn.text, time: nowTime() }
-		]);
-		await sleep(420);
+		busy = false;
+		// giliran barusan menambah biaya — segarkan saldo & pemakaian di latar
+		wallet.refresh().catch(() => {});
 	}
 }
 
 export const conversation = {
 	get messages() {
-		return store.value;
+		return pending ? [...serverMsgs, pending] : serverMsgs;
 	},
 	get thinking() {
 		return thinking;
@@ -78,74 +139,69 @@ export const conversation = {
 	get busy() {
 		return busy;
 	},
+	get loaded() {
+		return loaded;
+	},
 	get empty() {
-		return store.value.length === 0 && !thinking;
+		return loaded && serverMsgs.length === 0 && !pending && !thinking;
+	},
+
+	/** Muat riwayat dari backend. Dipanggil sekali setelah login. */
+	async load() {
+		try {
+			await fetchThread();
+		} catch {
+			// biarkan loaded tetap terset — kanvas kosong lebih baik daripada
+			// spinner selamanya; kirim pesan berikutnya akan sinkron ulang.
+		} finally {
+			loaded = true;
+		}
 	},
 
 	/** @param {string} text */
 	async sendText(text) {
-		if (busy) return;
-		busy = true;
-		try {
-			const id = nextId();
-			const willFail = Math.random() < 0.16;
-			setMessages((m) => [
-				...m,
-				{ id, from: 'human', type: 'text', text, time: nowTime(), status: 'sending' }
-			]);
-			await sleep(620);
-			if (willFail) {
-				setMessages((m) => m.map((x) => (x.id === id ? { ...x, status: 'error' } : x)));
-				return;
-			}
-			setMessages((m) => m.map((x) => (x.id === id ? { ...x, status: undefined } : x)));
-			await runPlan(planReply(text));
-		} finally {
-			busy = false;
-		}
+		if (busy || !text.trim()) return;
+		/** @type {Message} */
+		const msg = $state({
+			id: `local-${++sendSeq}`,
+			from: 'human',
+			type: 'text',
+			text: text.trim(),
+			time: clockTime(undefined),
+			status: 'sending'
+		});
+		pending = msg;
+		await runTurn(text.trim(), msg);
 	},
 
-	/** @param {number} id */
+	/** Kirim ulang pesan optimistis yang gagal. @param {string} id */
 	async retry(id) {
-		if (busy) return;
-		busy = true;
-		try {
-			setMessages((m) => m.map((x) => (x.id === id ? { ...x, status: 'sending' } : x)));
-			await sleep(700);
-			let text = '';
-			setMessages((m) =>
-				m.map((x) => {
-					if (x.id === id) {
-						text = x.text ?? '';
-						return { ...x, status: undefined };
-					}
-					return x;
-				})
-			);
-			await runPlan(planReply(text));
-		} finally {
-			busy = false;
-		}
+		const msg = pending;
+		if (busy || !msg || msg.id !== id || !msg.text) return;
+		msg.status = 'sending';
+		msg.errorNote = undefined;
+		await runTurn(msg.text, msg);
 	},
 
-	/** @param {string} src @param {string} caption */
-	async sendImage(src, caption) {
-		if (busy) return;
-		busy = true;
+	/** Hapus riwayat chat di backend (thread Zep ikut terhapus). */
+	async clear() {
 		try {
-			setMessages((m) => [
-				...m,
-				{ id: nextId(), from: 'human', type: 'image', src, caption, time: nowTime() }
-			]);
-			await runPlan([{ from: 'ava', text: pick(IMAGE_REPLIES) }]);
-		} finally {
-			busy = false;
+			const sid = await sessionId();
+			await api(`/sessions/${encodeURIComponent(sid)}/messages`, { method: 'DELETE' });
+		} catch (e) {
+			if (!isNotFound(e)) throw e; // belum ada thread = memang sudah kosong
 		}
+		serverMsgs = [];
+		pending = null;
+		thinking = null;
 	},
 
-	clear() {
-		store.value = [];
+	/** Reset state lokal (dipanggil saat logout). */
+	reset() {
+		serverMsgs = [];
+		pending = null;
 		thinking = null;
 		busy = false;
+		loaded = false;
 	}
 };

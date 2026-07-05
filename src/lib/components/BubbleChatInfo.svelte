@@ -82,7 +82,7 @@
 	onclick={(e) => e.stopPropagation()}
 	role="presentation"
 >
-	<div class="bm-time"><Icon name="clock" size={13} /> {fullStamp(msg.time)}</div>
+	<div class="bm-time"><Icon name="clock" size={13} /> {fullStamp(msg.time, msg.at)}</div>
 	{#if copyText}
 		<button class="bm-copy" onclick={handleCopy}>
 			<Icon name={copied ? 'check' : 'copy'} size={14} />

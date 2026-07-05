@@ -1,5 +1,6 @@
 <script>
 	import { page } from '$app/state';
+	import { resolve } from '$app/paths';
 
 	// This renders for any unmatched route (404) as well as thrown errors. The
 	// copy stays in Bahasa Indonesia and matches the paper/serif/terracotta look
@@ -25,7 +26,7 @@
 		<div class="nf-code">{page.status}</div>
 		<h1 class="nf-title">{heading}</h1>
 		<p class="nf-blurb">{blurb}</p>
-		<a class="nf-btn" href="/">ke halaman utama</a>
+		<a class="nf-btn" href={resolve('/')}>ke halaman utama</a>
 	</main>
 </div>
 

@@ -7,7 +7,7 @@
 
 	// Percakapan demo yang diputar terus di kartu preview login. Ini murni
 	// tampilan (kartu di-`pointer-events:none`, `aria-hidden`), jadi tak ada
-	// interaksi asli — cuma "iklan hidup" produk. Naskah: login-page-video.md.
+	// interaksi asli — cuma "iklan hidup" produk.
 	const SCRIPT = [
 		{ kind: 'human', from: 'human', text: 'musik!' },
 		{ kind: 'agent', from: 'ava', text: 'siap, mau yang calm atau gimana nih musiknya' },
@@ -96,7 +96,7 @@
 		await typeInto(text, text.length > 30 ? 24 : 46);
 		if (!alive) return;
 		await delay(320);
-		const id = ++msgId;
+		const id = `pv-${++msgId}`;
 		messages = [
 			...messages,
 			{ id, from: 'human', type: 'text', text, time: nowTime(), status: 'sending' }
@@ -115,7 +115,7 @@
 		await delay(950 + Math.random() * 650);
 		if (!alive) return;
 		thinking = null;
-		messages = [...messages, { id: ++msgId, from, type: 'text', text, time: nowTime() }];
+		messages = [...messages, { id: `pv-${++msgId}`, from, type: 'text', text, time: nowTime() }];
 		scrollDown();
 		await delay(500);
 	}
@@ -142,12 +142,11 @@
 
 	onMount(() => {
 		const reduced =
-			typeof matchMedia === 'function' &&
-			matchMedia('(prefers-reduced-motion: reduce)').matches;
+			typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 		if (reduced) {
 			// Tanpa animasi: tampilkan percakapan penuh secara statis.
 			messages = SCRIPT.map((s) => ({
-				id: ++msgId,
+				id: `pv-${++msgId}`,
 				from: s.from,
 				type: 'text',
 				text: s.text,
@@ -169,12 +168,7 @@
 			<div class="preview-thread">
 				<div class="daydivider">Hari ini</div>
 				{#each messages as msg, i (msg.id)}
-					<Message
-						{msg}
-						grouped={groupedAt(i)}
-						onOpenImage={noop}
-						onRetry={noop}
-					/>
+					<Message {msg} grouped={groupedAt(i)} onOpenImage={noop} onRetry={noop} />
 				{/each}
 				{#if thinking}
 					<Thinking agent={thinking.agent} />
@@ -183,8 +177,6 @@
 		</div>
 		<div class="preview-composer">
 			<div class="inputbar" class:typing={typingText}>
-				<div class="compose-btn"><Icon name="image" size={21} /></div>
-
 				<div class="inputbar-mirror-wrap">
 					<div class="ta-mirror">
 						{#if typingText}{#each tokens as t, i (i)}{#if t.kind === 'mention'}<mark
@@ -196,11 +188,7 @@
 					</div>
 				</div>
 
-				{#if typingText}
-					<div class="send-btn"><Icon name="send" size={18} /></div>
-				{:else}
-					<div class="compose-btn"><Icon name="mic" size={21} /></div>
-				{/if}
+				<div class="send-btn" class:sb-idle={!typingText}><Icon name="send" size={18} /></div>
 			</div>
 		</div>
 	</div>
@@ -268,6 +256,11 @@
 		position: relative;
 	}
 	.preview-ph {
+		color: var(--ink-faint);
+	}
+	/* send button "nonaktif" saat belum ada ketikan — meniru composer asli */
+	.send-btn.sb-idle {
+		background: var(--bg-sunk);
 		color: var(--ink-faint);
 	}
 	/* caret blok seperti kursor teks asli */

@@ -1,13 +1,14 @@
 # CLAUDE.md
 
-Avagenc Chat — antarmuka chat multi-agent (prototipe UI, balasan masih disimulasikan lokal).
+Avagenc Chat — antarmuka chat multi-agent. Terhubung ke backend asli
+(repo `avagenc/chat`, `cmd/http`): auth Firebase, balasan agent dari
+POST `/ava`, riwayat dari memori episodik `/sessions`, wallet, postera,
+knowledge, dan linking OAuth (Google Workspace & Spotify). Yang masih stub:
+pembayaran top-up (Midtrans) dan Tuya (linking manual "VIP").
 
-> **Catatan buat sesi Claude lain:** sifat "prototipe/simulasi" di atas soal
-> keadaan kode, bukan cara produk dipresentasikan ke publik. Halaman legal
-> `/legal` (Privasi + Ketentuan dalam satu halaman) sengaja menampilkan produk
-> sebagai layanan nyata demi review OAuth Google — **jangan tambahkan bahasa
-> prototipe/simulasi ke sana.**
-> Lihat `TODO.md` (bagian Status) untuk konteksnya.
+> **Catatan buat sesi Claude lain:** halaman legal `/legal` (Privasi +
+> Ketentuan dalam satu halaman) menampilkan produk sebagai layanan nyata demi
+> review OAuth Google — **jangan tambahkan bahasa prototipe/simulasi ke sana.**
 
 ## Stack
 
@@ -24,22 +25,55 @@ Package manager: **Bun** (`bun.lock`; Dockerfile pakai `oven/bun`).
 
 ## Arsitektur
 
-SPA murni: `src/routes/+layout.js` set `ssr = false`, jadi semua render terjadi di client. State persisten disimpan di `localStorage` lewat helper `persisted()` (`src/lib/persisted.svelte.js`); key: `avagenc.messages`, `avagenc.authed`, `avagenc.postera`.
+SPA murni: `src/routes/+layout.js` set `ssr = false`, semua render di client.
+Data hidup di backend — **tidak ada lagi state chat di `localStorage`**
+(helper `persisted()` sudah dihapus). Base URL backend dari env
+`PUBLIC_API_BASE` (`.env` / `env.example`).
 
 File inti:
 
-- `src/lib/agents.js` — definisi `AGENTS` (Ava=orkestrator+Spotify, Zee=Tuya smart home, Yori=Gmail, Rafal=Google Calendar), data `SEED` (percakapan awal) & `SEED_POSTERA`, helper waktu.
-- `src/lib/orchestrator.js` — `planReply()`: router berbasis keyword yang mengembalikan urutan giliran balasan agent. Ini "seam" untuk diganti backend asli nanti.
-- `src/lib/stores/conversation.svelte.js` — alur kirim/retry, indikator "thinking", dan migrasi data lama. Memanggil `planReply`.
+- `src/lib/api.js` — klien HTTP: `Authorization: Bearer <Firebase ID token>` +
+  header `session-id` & `time-zone` di semua request; error backend →
+  `ApiError {status, detail}`. `sessionId()` deterministik `chat-<uid>` supaya
+  riwayat nyambung lintas device (backend auto-create thread Zep).
+- `src/lib/firebase.js` — auth Google (lazy-init, dynamic import).
+- `src/lib/agents.js` — definisi `AGENTS` (Ava=orkestrator murni, Zee=Tuya
+  smart home, Yori=musik/Spotify, Rafal=Gmail+Kontak+Kalender via Google
+  Workspace), `SOON_AGENTS` (teaser), helper waktu.
+- `src/lib/stores/conversation.svelte.js` — sumber kebenaran pesan = thread
+  backend (`GET /sessions/{sid}/messages`). Kirim = `POST /ava`; selama
+  menunggu, thread di-poll (~2.2s) supaya giliran delegasi/specialist muncul
+  live. Pesan human baru dirender optimistis (`local-*`, status `sending`)
+  sampai muncul di thread server.
+- `src/lib/stores/wallet.svelte.js` — saldo (`GET /wallet`) + pemakaian hari
+  ini (`GET /wallet/usage/today`); di-refresh setelah tiap giliran agent.
+- `src/lib/stores/postera.svelte.js` — `GET /postera`, batal `DELETE
+/postera/{id}`.
+- `src/lib/stores/session.svelte.js` — auth gate + `profile` (nama/email dari
+  akun Google); saat login memicu load semua store, saat logout me-reset-nya.
+- `src/routes/link/callback/+page.svelte` — halaman callback OAuth bersama
+  (Google Workspace & Spotify); route integrasi dari segmen pertama `state`,
+  lalu `POST /{integration}/connection`. URL-nya harus terdaftar verbatim di
+  provider dan jadi env backend `LINK_REDIRECT_URL`.
 - `src/lib/components/`, `src/lib/panels/` — komponen & panel UI.
 
 Setiap agent punya variabel warna CSS `--<id>` di `src/app.css` (mis. `--ava`, `--rafal`).
 
 ## Catatan penting
 
-- **Seed hanya dimuat saat `localStorage` kosong.** Mengubah `SEED` tidak akan terlihat di browser yang sudah pernah membuka app — perlu "Hapus riwayat chat" atau hapus key `avagenc.messages`.
-- **Saat refactor agent:** komponen me-resolve agent via `AGENTS[msg.from]`. Pesan dari agent yang dihapus akan `undefined` → guard di UI (`{#if a}`) dan tambahkan migrasi di `conversation.svelte.js` agar tidak crash (layar putih). Lihat blok migrasi yang ada sebagai contoh.
-- **ID pesan harus unik & monoton — jangan andalkan counter di module saja.** `nextId()` (`agents.js`) cuma counter module (`__id`) yang reset ke nilai awal tiap reload, padahal `id` pesan ikut disimpan di `localStorage`. Kalau counter tidak di-seed, sesudah refresh `nextId()` mulai dari angka rendah lagi → id baru bentrok dengan pesan lama → key duplikat di `{#each conversation.messages as msg (msg.id)}` (`+page.svelte`) bikin Svelte throw → tombol kirim "mati". Karena itu `conversation.svelte.js` memanggil `seedId(maxIdYangAda)` setelah store dimuat (sesudah blok migrasi). Jangan hapus pemanggilan ini, dan kalau bikin sumber id baru pastikan tetap monoton di atas seluruh id yang sudah dipersist. Catatan: bug ini hanya muncul saat ada riwayat lalu di-refresh — bukan saat fresh/baru clear (store kosong, jadi belum ada yang bentrok).
+- **Pemetaan pesan thread → UI** (`toUiMessage` di `conversation.svelte.js`):
+  role `system` di-skip (pesan wake-up postera untuk Ava); role `user` dengan
+  `name` agent = giliran delegasi Ava (tampil sebagai pesan Ava, mis. `@zee …`);
+  role `assistant` → `from` = `name`. `name` di luar `AGENTS` jatuh ke
+  human/ava — guard `{#if a}` di UI tetap perlu.
+- **Saat refactor agent:** komponen me-resolve agent via `AGENTS[msg.from]`;
+  pesan dari agent yang tidak dikenal dipetakan ke Ava oleh `toUiMessage`,
+  jadi tidak crash — tapi pastikan roster `AGENTS` sinkron dengan backend.
+- **402 dari backend = saldo habis** — `sendText` menandai pesan `error` +
+  `errorNote:'saldo'`; wallet & top-up yang jadi jalur pulihnya (pembayaran
+  masih stub Midtrans).
+- **ID pesan** = UUID Zep (string); pesan optimistis pakai prefix `local-`.
+  Jangan kembali ke counter angka.
 
 ---
 
@@ -50,8 +84,11 @@ Setiap agent punya variabel warna CSS `--<id>` di `src/app.css` (mis. `--ava`, `
 > isinya sudah jadi app SvelteKit sekarang (login, chat, panel, dst). Jadi bagian
 > ini dipakai sebagai **spec visual & perilaku** (design tokens = source of truth
 > nilai visual), bukan instruksi port lagi. Roster agent di bawah sudah
-> disesuaikan ke kode aktual (Ava / Zee / Yori=Gmail / Rafal=Calendar); handoff
-> lama sempat menyebut agent "Niko/Yori-musik" — abaikan, kode yang menang.
+> disesuaikan ke kode aktual (Ava=orkestrator murni / Zee=Tuya / Yori=musik
+> Spotify / Rafal=Gmail+Kontak+Kalender); handoff lama sempat menyebut
+> "Niko" dan pembagian lain — abaikan, kode yang menang. Perilaku simulasi
+> di handoff (planReply, voice note, image message) sudah diganti backend
+> asli / dihapus.
 
 ## Konsep produk
 
@@ -59,9 +96,9 @@ Chat mobile-first di mana user ("Human") ngobrol dengan **Ava**, AI orkestrator,
 yang mendelegasikan tugas ke tim agent spesialis yang membalas di thread yang sama
 — gaya group-chat. Estetika: UI "kertas" hangat krem, tipografi serif untuk isi
 pesan, satu aksen terracotta, hairline border alih-alih shadow. Semua copy Bahasa
-Indonesia. Permukaan produk: login gaya Google, kanvas chat (pesan teks/voice/image
-dengan @mention), delegasi agent in-thread, pencarian pesan, panel profil/billing
-(token pay-as-you-go, top-up, integrasi pihak ketiga), halaman chat-info, dan
+Indonesia. Permukaan produk: login Google, kanvas chat (pesan teks dengan
+@mention), delegasi agent in-thread, pencarian pesan, panel profil/billing
+(pemakaian token harian, top-up, integrasi pihak ketiga), halaman chat-info, dan
 **Postera** — pesan yang Ava jadwalkan untuk dirinya sendiri di masa depan.
 
 Fidelity: hi-fi. Warna, tipografi, spacing, radii, motion, dan interaction state
@@ -127,12 +164,13 @@ round cap/join) via `Icon.svelte` (prop `name`). Tidak perlu library ikon.
 ## Layar / view
 
 Routing "layar" pakai state (`authed`, `panel`, `view`), **bukan URL** — chat
-adalah satu `+page.svelte`. (Kekecualian: `/legal` yang memang route statis;
-lihat `TODO.md`.)
+adalah satu `+page.svelte`. (Kekecualian: `/legal` route statis untuk review
+OAuth, dan `/link/callback` halaman callback OAuth linking.)
 
-1. **Login** (`.login-v2`): sign-in Google satu-tap (mock — cuma flip `authed`).
-   Brand lockup kiri-atas, hook block terpusat, `.btn-google` (max 340px). Hook
-   dua baris: baris 1 serif 38px statis, baris 2 typewriter di `--accent`.
+1. **Login** (`.login-v2`): sign-in Google via popup Firebase. Brand lockup
+   kiri-atas, hook block terpusat, `.btn-google` (max 340px) di dalam kartu
+   announce, live chat preview di kanan (≥880px). Hook dua baris: baris 1
+   serif 38px statis, baris 2 typewriter di `--accent`.
 2. **Kanvas chat**: thread utama. Pesan Human rata kanan (bubble `--accent-tint`);
    pesan agent rata kiri dengan byline + avatar (bubble `--surface`+`--line`).
    Shell `.app` flex column fixed-height `overflow:hidden`, grain kertas via
@@ -150,72 +188,67 @@ lihat `TODO.md`.)
    pointer corner. **Tiny variant** kalau teks cuma `@mention` (mis. `@zee`) → pill
    w500. Klik bubble → `BubbleChatInfo` (timestamp + "Salin teks"). `@mention` &
    highlight search di-render `MentionText` (split `/(@\w+)/g`). Status: `sending`
-   → "Mengirim…", `error` → ikon + "Gagal terkirim." + "Coba lagi".
+   → "Mengirim…", `error` → ikon + "Gagal terkirim." (atau "Saldo tidak cukup…"
+   saat 402) + "Coba lagi".
 4. **Composer** (`.composer-wrap`/`.inputbar`): fixed bawah, inset mengikuti lebar
    panel. Pill `--surface`, border → `--accent` on focus-within. Textarea
    auto-grow (max 132px) di atas **mirror div** yang me-render highlight @mention
-   live. Kanan: tombol send kalau ada isi, kalau kosong tombol mic. **Autocomplete
-   @mention**: ketik `@`+partial → `.mention-popup`, `↑/↓` pindah, `Tab`/`Enter`
-   accept, `Esc` tutup. **Voice**: tap mic → mode `.recording` (dot pulse, timer,
-   `.rec-wave`) → kirim bikin pesan `voice` dengan `makeWave`. **Image**: attach
-   `sample-photo.svg` → `.preview-strip` → kirim pesan `image`.
-5. **Voice bubble** (`.voice`): play/pause circle (ber-hue agent), `.wave` yang
-   terisi kiri→kanan mengikuti progress (rAF vs `msg.dur`), durasi `0:SS`.
-6. **Image + Lightbox**: card gambar radius 12px (max 320px) + caption serif
-   opsional; klik → `.lightbox` fullscreen (Escape/klik-luar tutup).
-7. **Thinking** (`.thinking`): byline agent + bubble tiga titik `blink` (stagger
-   0.18s), ber-hue agent. Muncul saat giliran agent sedang "mengetik".
-8. **Chat-info page** (`.info-page-inner`): identity block, scroller 4 chip agent
-   (tap → `.agent-detail`, tap avatar → `AgentInfoFloat`), row "Cari di chat", grup
-   "Kelola" dengan dua row destruktif (**Hapus riwayat chat**, **Hapus knowledge**)
+   live. Kanan: tombol send (disabled saat kosong/busy; busy = menunggu balasan
+   orkestrasi). **Autocomplete @mention**: ketik `@`+partial → `.mention-popup`,
+   `↑/↓` pindah, `Tab`/`Enter` accept, `Esc` tutup. (Voice note & attach image
+   sudah dihapus — backend hanya menerima teks.)
+5. **Thinking** (`.thinking`): byline agent + bubble tiga titik `blink` (stagger
+   0.18s), ber-hue agent. Muncul selama `POST /ava` in-flight.
+6. **Chat-info page** (`.info-page-inner`): identity block, scroller chip agent
+   (aktif + teaser "Soon"; tap → `.agent-detail`), row "Cari di chat", grup
+   "Kelola" dengan dua row destruktif (**Hapus riwayat chat** →
+   `DELETE /sessions/{sid}/messages`, **Hapus knowledge** → `DELETE /knowledge`)
    masing-masing di-gate `ActionConfirm`.
-9. **Profile panel** (`.sheet.sheet-left`): account card (avatar gradient + badge
-   Google "G", email pill), usage card (pill Pay-as-you-go, token used, est. cost,
-   progress bar, balance, tombol **Isi ulang**), integrasi (`.set-list`): Gmail,
-   Google Calendar, **Tuya Smart** (chip **VIP** → `TuyaVipFloat`). Brand tile =
-   mark generik (`Brand`), **bukan** logo pihak ketiga asli. Footer: **Keluar** →
-   `ActionConfirm`.
-10. **Top-up modal** (`.topup-modal`): balance card, 4 preset chip
-    (50k/100k/200k/500k), input Rp custom (min Rp 10.000), summary, 4 bullet
-    peringatan, tombol lanjut → placeholder Midtrans. Provider bayar = **stub**.
-11. **Postera panel** (`.sheet` kanan): header "Postera" + refresh + close, copy
-    intro (posterum = pesan wake-up Ava untuk dirinya sendiri). List `PosterumItem`
-    accordion: pill `awaken_at` (hue Ava), preview, chevron; expanded ada tombol
-    "Batalkan posterum" (→ `ActionConfirm`). Empty state kalau kosong.
+7. **Profile panel** (`.sheet.sheet-left`): account card dari akun Google login
+   (avatar inisial + badge "G", email pill). **Usage card**: header "Hari ini"
+   dengan jam "Diperbarui HH:MM" dan tombol refresh; satu angka besar biaya
+   hari ini rata kanan (`.usage-hero .big`) dengan keterangan "terpakai hari
+   ini untuk N token" di bawahnya; footer saldo + tombol **Isi ulang**.
+   **Integrasi** (`.set-list`), tiap row menampilkan nama agent terkait (dot +
+   nama ber-hue agent + "· role"): **Google Workspace** (satu tombol connect
+   untuk Gmail+Kontak+Kalender, brand tile = tumpukan 3 logo, agent Rafal),
+   **Spotify** (agent Yori), **Tuya Smart** (agent Zee, chip **VIP** →
+   `TuyaVipFloat`). Tombol: "Hubungkan" → `GET /{i}/auth-url` lalu redirect ke
+   consent; "Terhubung" → confirm → `DELETE /{i}/connection`; status awal dari
+   `GET /{i}/connection`. Footer: **Keluar** → `ActionConfirm`.
+8. **Top-up modal** (`.topup-modal`): balance card (saldo asli dari wallet),
+   4 preset chip (50k/100k/200k/500k), input Rp custom (min Rp 10.000),
+   summary, 4 bullet peringatan, tombol lanjut → placeholder Midtrans.
+   Provider bayar = **stub**.
+9. **Postera panel** (`.sheet` kanan): header "Postera" + refresh
+   (`posteraStore.load()`) + close, jam "Diperbarui HH:MM". List posterum
+   accordion: pill `awaken_at` (hue Ava; "HH:MM" hari ini, "5 Jul · HH:MM"
+   selain itu), preview, chevron; expanded ada tombol "Batalkan posterum"
+   (→ `ActionConfirm` → `DELETE /postera/{id}`). Empty state kalau kosong.
 
 ## Interaksi & perilaku
 
-- **Send text** (`sendText`): append pesan `human` `status:"sending"`; ~620ms
-  kemudian **16% waktu** flip ke `status:"error"` (uji jalur retry), sisanya clear
-  status lalu jalankan `planReply(text)`.
-- **Retry**: set pesan gagal kembali `sending`, ~700ms, clear, ulang plan.
-- **Orchestrate** (`runPlan`): tiap giliran terencana → tampilkan `Thinking` agent
-  `850–1550ms`, sembunyikan, append pesan agent, jeda ~420ms, giliran berikutnya.
-- **planReply** (`orchestrator.js`, keyword router → urutan giliran):
-  - musik/Spotify (`musik, lagu, playlist, putar, setel, play, pause, volume,
-spotify, akustik, kalem`) → **Ava langsung** (Ava pegang Spotify).
-  - email/Gmail (`email, mail, gmail, inbox, surel, balas, kirim ke`) → Ava `@yori`
-    lalu balasan **Yori**.
-  - kalender (`kalender, jadwal, acara, agenda, meeting, rapat, event, reminder`) →
-    Ava `@rafal` lalu **Rafal**.
-  - smart home/Tuya (`lampu, terang, gelap, tirai, redup, ac, dingin, panas,
-colokan, kipas, device, tuya, nyalain, matiin`) → Ava `@zee` lalu **Zee**.
-  - starter-bubble (kenalan, "apa itu avagenc", "bisa bantu apa", cek Spotify) →
-    balasan Ava langsung; sapaan & terima kasih → Ava langsung; else → fallback Ava.
-  - tiap cabang `pick()` baris random dari pool — pool = "suara" produk.
-- **Voice/image** → satu balasan Ava dari `VOICE_REPLIES`/`IMAGE_REPLIES`.
+- **Send text** (`sendText`): append pesan human optimistis (`local-*`,
+  `status:"sending"`), tampilkan `Thinking` Ava, `POST /ava {message}`.
+  Selama in-flight, thread di-poll tiap ~2.2s (`GET /sessions/{sid}/messages`)
+  supaya giliran delegasi (`@zee …`) & balasan specialist muncul live —
+  orkestrasi sesungguhnya terjadi di backend (Ava + sub-agent ADK). Setelah
+  POST selesai: sinkronisasi final thread, lalu refresh wallet.
+- **Retry**: hanya untuk pesan optimistis yang `error` — re-`POST /ava` dengan
+  teks yang sama. 402 → `errorNote:'saldo'` (copy khusus di `.msg-meta`).
 - **Search**: buka search sembunyikan composer/chrome; `matches` = id pesan yang
   teks/caption-nya memuat query (case-insensitive); `↑/↓`/Enter cycle; match aktif
   scroll ke tengah + `.active-match`.
-- **Clear chat** → kosongkan messages + toast; **Clear knowledge** → no-op + toast;
-  **Cancel posterum** → hapus + toast. **Toast**: pill bawah-tengah, auto ~2200ms.
-- **Logout** → clear `authed` (kembali ke Login).
+- **Clear chat** → `DELETE /sessions/{sid}/messages` + toast; **Clear
+  knowledge** → `DELETE /knowledge` + toast (404 = sudah kosong, tetap sukses);
+  **Cancel posterum** → `DELETE /postera/{id}` + toast. **Toast**: pill
+  bawah-tengah, auto ~2200ms.
+- **Logout** → signOut Firebase; store conversation/postera/wallet di-reset.
 
 **Motion (port persis).** Easing global `--ease`. `rise` (enter row/float 8px/0.42s),
 `fade` (overlay), `slidein`/`slidein-left` (side-dock 0.30s), `blink` (thinking),
-`pulse` (rec dot), `livewave` (rec bars), `tw-blink` (caret typewriter),
-`spin-refresh` (refresh Postera). Push panel di `.canvas`/`.composer-wrap`/`.top-fade`
-= 0.30s. Hormati `prefers-reduced-motion`.
+`tw-blink` (caret typewriter), `spin-refresh` (refresh Postera). Push panel di
+`.canvas`/`.composer-wrap`/`.top-fade` = 0.30s. Hormati `prefers-reduced-motion`.
 
 **Responsif.** Mobile-first sampai ~360px. Side-dock cap `90vw`. Di bawah 640px
 padding kiri composer nambah biar tidak ketutup tombol profil. Layar lebar = kolom
@@ -225,14 +258,16 @@ padding kiri composer nambah biar tidak ketutup tombol profil. Layar lebar = kol
 
 Global (module/store level):
 
-- `authed` (persisted `avagenc.authed`)
-- `messages` (persisted `avagenc.messages`) — `{ id, from, type, text?|caption?+src?|dur?+wave?, time, status? }`
-- `thinking: { agent } | null`
+- `authed`/`ready`/`user`/`profile` — dari Firebase Auth (`session.svelte.js`)
+- `messages` — dari thread backend + pesan optimistis; `{ id, from, type:'text',
+text, time, at?, status?, errorNote? }`
+- `thinking: { agent } | null`, `busy`, `loaded`
 - `panel: 'profile' | 'postera' | null`
 - `view: 'chat' | 'info'`
 - `lightbox: src | null`, `toast: string | null`
 - `search: { active, query, idx }`
-- `postera` (persisted `avagenc.postera`) — `{ id, message, awaken_at }`
+- `postera` — `{ id, message, awaken_at }` dari `GET /postera`
+- wallet — `balance`, `todayTokens`, `todayCost`, `lastUpdated`
 - `openFloat` — satu float aktif ("one popup at a time"; setel = ganti yang lama).
 
 Derived: `matches`, `clampedIdx`, `activeId`, `empty`, plus per-row `grouped`/`tiny`
@@ -245,8 +280,8 @@ dari `getBoundingClientRect()` anchor.
 - `avagenc-ink.svg` / `avagenc-accent.svg` / `avagenc-cream.svg` — logo Avagenc tiga
   fill (`Logo` pilih via prop `variant`): ink=lockup brand, accent=mark empty-state,
   cream=di dalam avatar berwarna.
-- `sample-photo.svg` — placeholder image untuk demo image-message & seed.
 - **Google "G"** digambar inline (4-warna resmi) hanya untuk affordance auth Google
   — bukan bagian palet brand Avagenc.
-- Brand tile integrasi (`Brand`: gmail/calendar/tuya) = mark disederhanakan,
-  **jangan** ganti dengan logo pihak ketiga asli.
+- Brand tile integrasi (`Brand`: gmail/contacts/calendar/spotify/tuya) = logo
+  webp di `/static`; Google Workspace dirender sebagai tumpukan 3 tile
+  (`.brand-stack`).
