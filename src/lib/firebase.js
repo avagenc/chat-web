@@ -4,12 +4,7 @@
    prerender/build di Node — SDK auth menyentuh window/IndexedDB saat init.
    Persistensi sesi & refresh token diurus SDK (default: IndexedDB). */
 import { browser } from '$app/environment';
-import {
-	PUBLIC_FIREBASE_API_KEY,
-	PUBLIC_FIREBASE_AUTH_DOMAIN,
-	PUBLIC_FIREBASE_PROJECT_ID,
-	PUBLIC_FIREBASE_APP_ID
-} from '$env/static/public';
+import { env } from '$env/dynamic/public';
 
 /** @type {Promise<import('firebase/auth').Auth> | null} */
 let authPromise = null;
@@ -21,10 +16,10 @@ function getFirebaseAuth() {
 		const { initializeApp } = await import('firebase/app');
 		const { getAuth } = await import('firebase/auth');
 		const app = initializeApp({
-			apiKey: PUBLIC_FIREBASE_API_KEY,
-			authDomain: PUBLIC_FIREBASE_AUTH_DOMAIN,
-			projectId: PUBLIC_FIREBASE_PROJECT_ID,
-			appId: PUBLIC_FIREBASE_APP_ID
+			apiKey: env.PUBLIC_FIREBASE_API_KEY,
+			authDomain: env.PUBLIC_FIREBASE_AUTH_DOMAIN,
+			projectId: env.PUBLIC_FIREBASE_PROJECT_ID,
+			appId: env.PUBLIC_FIREBASE_APP_ID
 		});
 		return getAuth(app);
 	})();

@@ -5,10 +5,8 @@
    yang tidak memakainya. Error backend berbentuk problem JSON `{detail}` dan
    dilempar sebagai ApiError supaya pemanggil bisa cabang per-status
    (mis. 402 saldo habis, 404 sesi belum ada). */
-import { PUBLIC_API_BASE } from '$env/static/public';
+import { env } from '$env/dynamic/public';
 import { getIdToken, getUid } from './firebase.js';
-
-const BASE = PUBLIC_API_BASE.replace(/\/+$/, '');
 
 export class ApiError extends Error {
 	/** @param {number} status @param {string} detail */
@@ -49,7 +47,8 @@ export async function api(path, opts = {}) {
 	const token = await getIdToken();
 	if (!token) throw new ApiError(401, 'belum login');
 	const sid = await sessionId();
-	const res = await fetch(BASE + path, {
+	const base = (env.PUBLIC_API_BASE || '').replace(/\/+$/, '');
+	const res = await fetch(base + path, {
 		method: opts.method ?? 'GET',
 		headers: {
 			Authorization: `Bearer ${token}`,
