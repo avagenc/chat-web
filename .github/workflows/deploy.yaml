@@ -15,8 +15,8 @@ jobs:
       APP_ENV: ${{ vars.APP_ENV }}
       REGION: asia-southeast1
       REPO_NAME: docker
-      SERVICE_NAME: chat
-      IMAGE_NAME: chat
+      SERVICE_NAME: chat-web
+      IMAGE_NAME: chat-web
 
     steps:
       - name: Validate Deploy Configuration
