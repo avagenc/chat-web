@@ -968,6 +968,9 @@ button {
 .ta-mirror::-webkit-scrollbar {
 	display: none;
 }
+/* Styling token mirror wajib metric-neutral: textarea transparan di atasnya
+   menggambar caret mengikuti layout teksnya sendiri, jadi lebar advance glyph
+   mirror harus identik — font-weight/letter-spacing di sini menggeser caret. */
 mark.ta-mention,
 mark.ta-mention-partial {
 	border-radius: 4px;
@@ -975,7 +978,8 @@ mark.ta-mention-partial {
 mark.ta-mention {
 	background: var(--accent-tint-strong);
 	color: var(--accent-deep);
-	font-weight: 600;
+	/* kesan semibold tanpa mengubah metrik (pengganti font-weight:600) */
+	-webkit-text-stroke: 0.3px currentColor;
 }
 mark.ta-mention-partial {
 	background: var(--accent-tint);
@@ -988,6 +992,12 @@ mark.ta-mention-partial {
 	caret-color: var(--ink);
 	width: 100%;
 	flex: none;
+	/* mirror menyembunyikan scrollbar; content box kedua layer harus sama
+	   lebar supaya titik wrap identik saat teks melebihi max-height */
+	scrollbar-width: none;
+}
+.composer-textarea.ta-over-mirror::-webkit-scrollbar {
+	display: none;
 }
 /* suggestion popup */
 .mention-popup {
