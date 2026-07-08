@@ -1,7 +1,8 @@
 /* Conversation state di atas backend asli (repo `chat`, cmd/http).
 
    Sumber kebenaran pesan = memori episodik backend:
-   GET /sessions/{sid}/messages (thread Zep). Kirim pesan = POST /ava; Ava
+   GET /sessions/messages (thread Zep; backend single-session, sesi
+   `chat-<uid>` diturunkan server-side dari token). Kirim pesan = POST /ava; Ava
    mendelegasikan ke specialist di server, dan SETIAP giliran (delegasi Ava,
    balasan specialist, jawaban akhir) tercatat ke thread yang sama dengan
    `name` pembicara ("human"/"ava"/"zee"/"yori"/"rafal"). Karena POST /ava
@@ -12,7 +13,7 @@
    sampai muncul di thread server — id lokalnya diprefiks "local-" dan tidak
    pernah dipersist; id pesan server = UUID Zep. */
 import { AGENTS, clockTime, routeAgent } from '../agents.js';
-import { api, ApiError, sessionId } from '../api.js';
+import { api, ApiError } from '../api.js';
 import { wallet } from './wallet.svelte.js';
 
 /** @typedef {import('../agents.js').Message} Message */
@@ -74,9 +75,8 @@ let fetchSeq = 0;
 
 async function fetchThread() {
 	const seq = ++fetchSeq;
-	const sid = await sessionId();
 	try {
-		const list = await api(`/sessions/${encodeURIComponent(sid)}/messages?lastn=${HISTORY_LASTN}`);
+		const list = await api(`/sessions/messages?lastn=${HISTORY_LASTN}`);
 		if (seq !== fetchSeq) return; // sudah ada fetch yang lebih baru
 		/** @type {Message[]} */
 		const mapped = [];

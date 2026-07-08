@@ -1,12 +1,14 @@
 /* Klien HTTP ke backend Avagenc Chat (cmd/http di repo `chat`).
    Semua route user di belakang auth Firebase: kirim `Authorization: Bearer
-   <ID token>`. Route agent & memory juga butuh header `session-id` dan
-   `time-zone` (IANA) — dikirim selalu karena tidak pernah mengganggu route
-   yang tidak memakainya. Error backend berbentuk problem JSON `{detail}` dan
-   dilempar sebagai ApiError supaya pemanggil bisa cabang per-status
-   (mis. 402 saldo habis, 404 sesi belum ada). */
+   <ID token>`. Route agent & wallet-usage juga butuh header `time-zone`
+   (IANA) — dikirim selalu karena tidak pernah mengganggu route yang tidak
+   memakainya. Sesi chat TIDAK dikirim dari sini: backend single-session,
+   menurunkan `chat-<uid>` sendiri dari token di semua entry point. Error
+   backend berbentuk problem JSON `{detail}` dan dilempar sebagai ApiError
+   supaya pemanggil bisa cabang per-status (mis. 402 saldo habis, 404 sesi
+   belum ada). */
 import { env } from '$env/dynamic/public';
-import { getIdToken, getUid } from './firebase.js';
+import { getIdToken } from './firebase.js';
 
 export class ApiError extends Error {
 	/** @param {number} status @param {string} detail */
@@ -27,18 +29,6 @@ export function timezone() {
 }
 
 /**
- * ID sesi chat — deterministik per user supaya riwayat nyambung lintas
- * device/reload (backend auto-create thread Zep pada run pertama; postera
- * me-round-trip id ini saat Ava bangun sendiri).
- * @returns {Promise<string>}
- */
-export async function sessionId() {
-	const uid = await getUid();
-	if (!uid) throw new ApiError(401, 'belum login');
-	return `chat-${uid}`;
-}
-
-/**
  * @param {string} path mis. '/ava'
  * @param {{ method?: string, body?: unknown }} [opts]
  * @returns {Promise<any>} JSON hasil, atau null untuk 204
@@ -46,13 +36,11 @@ export async function sessionId() {
 export async function api(path, opts = {}) {
 	const token = await getIdToken();
 	if (!token) throw new ApiError(401, 'belum login');
-	const sid = await sessionId();
 	const base = (env.PUBLIC_API_BASE || '').replace(/\/+$/, '');
 	const res = await fetch(base + path, {
 		method: opts.method ?? 'GET',
 		headers: {
 			Authorization: `Bearer ${token}`,
-			'session-id': sid,
 			'time-zone': timezone(),
 			...(opts.body !== undefined ? { 'Content-Type': 'application/json' } : {})
 		},

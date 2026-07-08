@@ -33,15 +33,16 @@ Data hidup di backend — **tidak ada lagi state chat di `localStorage`**
 File inti:
 
 - `src/lib/api.js` — klien HTTP: `Authorization: Bearer <Firebase ID token>` +
-  header `session-id` & `time-zone` di semua request; error backend →
-  `ApiError {status, detail}`. `sessionId()` deterministik `chat-<uid>` supaya
-  riwayat nyambung lintas device (backend auto-create thread Zep).
+  header `time-zone` di semua request; error backend →
+  `ApiError {status, detail}`. Sesi TIDAK dikirim dari FE: backend
+  single-session, menurunkan `chat-<uid>` sendiri dari token di semua entry
+  point (auto-create thread Zep), jadi riwayat otomatis nyambung lintas device.
 - `src/lib/firebase.js` — auth Google (lazy-init, dynamic import).
 - `src/lib/agents.js` — definisi `AGENTS` (Ava=orkestrator murni, Zee=Tuya
   smart home, Yori=musik/Spotify, Rafal=Gmail+Kontak+Kalender via Google
   Workspace), `SOON_AGENTS` (teaser), helper waktu.
 - `src/lib/stores/conversation.svelte.js` — sumber kebenaran pesan = thread
-  backend (`GET /sessions/{sid}/messages`). Kirim = `POST` ke endpoint agent
+  backend (`GET /sessions/messages`). Kirim = `POST` ke endpoint agent
   tujuan: `routeAgent(text)` (di `agents.js`) memilih dari himpunan unik
   `@mention` yang dikenal — tanpa mention → `/ava`; tepat satu agent → langsung
   ke endpoint-nya (`/zee`,`/yori`,`/rafal`) tanpa lewat Ava; lebih dari satu
@@ -247,7 +248,7 @@ OAuth, dan `/link/callback/[integration]` halaman callback OAuth linking.)
   `status:"sending"`), tampilkan `Thinking` agent tujuan (`routeAgent`),
   `POST {agent.endpoint} {message}`. Tanpa mention (atau >1 agent berbeda
   di-mention) → Ava (`/ava`) yang berorkestrasi; tepat satu agent di-mention →
-  langsung ke endpoint agent itu. Selama in-flight, thread di-poll tiap ~2.2s (`GET /sessions/{sid}/messages`)
+  langsung ke endpoint agent itu. Selama in-flight, thread di-poll tiap ~2.2s (`GET /sessions/messages`)
   supaya giliran delegasi (`@zee …`) & balasan specialist muncul live —
   orkestrasi sesungguhnya terjadi di backend (Ava + sub-agent ADK). Setelah
   POST selesai: sinkronisasi final thread, lalu refresh wallet.

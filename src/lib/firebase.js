@@ -64,12 +64,3 @@ export async function getIdToken() {
 	const auth = await getFirebaseAuth();
 	return auth.currentUser ? auth.currentUser.getIdToken() : null;
 }
-
-/**
- * UID Firebase user aktif — bahan id sesi chat yang deterministik per user.
- * @returns {Promise<string|null>} null kalau belum login
- */
-export async function getUid() {
-	const auth = await getFirebaseAuth();
-	return auth.currentUser ? auth.currentUser.uid : null;
-}
