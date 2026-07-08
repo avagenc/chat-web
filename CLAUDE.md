@@ -252,8 +252,16 @@ OAuth, dan `/link/callback/[integration]` halaman callback OAuth linking.)
   supaya giliran delegasi (`@zee …`) & balasan specialist muncul live —
   orkestrasi sesungguhnya terjadi di backend (Ava + sub-agent ADK). Setelah
   POST selesai: sinkronisasi final thread, lalu refresh wallet.
-- **Retry**: hanya untuk pesan optimistis yang `error` — re-`POST /ava` dengan
-  teks yang sama. 402 → `errorNote:'saldo'` (copy khusus di `.msg-meta`).
+- **Retry**: hanya untuk pesan optimistis yang `error`. Backend mempersist
+  pesan human ke thread di **awal** run, jadi POST yang gagal di sisi client
+  (timeout/putus jaringan/error tengah orkestrasi) bisa terjadi setelah pesan
+  tercatat — karena itu error handler `runTurn` maupun `retry` **rekonsiliasi
+  dulu ke thread server** sebelum menandai error / re-POST: kalau pesan sudah
+  mendarat (dicek via `pendingBaseline`, himpunan id server saat kirim), tidak
+  ada re-POST — mengirim ulang berarti pesan dobel & agent terpicu dua kali.
+  Error non-`ApiError` (jaringan) dengan pesan sudah mendarat → poller
+  dibiarkan hidup ~90s (orkestrasi mungkin masih jalan di server). 402 →
+  `errorNote:'saldo'` (copy khusus di `.msg-meta`).
 - **Search**: buka search sembunyikan composer/chrome; `matches` = id pesan yang
   teks/caption-nya memuat query (case-insensitive); `↑/↓`/Enter cycle; match aktif
   scroll ke tengah + `.active-match`.

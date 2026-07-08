@@ -22,11 +22,20 @@ import { wallet } from './wallet.svelte.js';
 const HISTORY_LASTN = 200;
 /** Jeda antar-poll selama menunggu balasan orkestrasi. */
 const POLL_MS = 2200;
+/** Lama terus memantau thread saat POST putus di sisi kita padahal pesan
+    sudah tercatat di server — orkestrasi kemungkinan masih berjalan tanpa
+    kita pegang lagi respons HTTP-nya. */
+const WATCH_MS = 90_000;
 
 /** @type {Message[]} */
 let serverMsgs = $state([]);
 /** Pesan human optimistis yang belum terlihat di thread server. @type {Message|null} */
 let pending = $state(null);
+/** Id pesan server yang SUDAH ada saat pesan optimistis dikirim. Pesan human
+    di thread dengan teks sama tapi id di luar himpunan ini = pesan kita yang
+    baru mendarat — bukan pesan lama yang kebetulan teksnya identik.
+    @type {Set<string>} */
+let pendingBaseline = new Set();
 /** @type {{ agent: string } | null} */
 let thinking = $state(null);
 // true selama satu giliran berjalan (POST /ava masih in-flight) — composer
@@ -86,7 +95,14 @@ async function fetchThread() {
 		}
 		serverMsgs = mapped;
 		// pesan optimistis sudah sampai di thread server → lepas duplikatnya
-		if (pending && mapped.some((m) => m.from === 'human' && m.text === pending?.text)) {
+		// (hanya cocok dengan pesan BARU — id di luar baseline saat kirim —
+		// supaya pesan lama berteks sama tidak salah dianggap "sudah mendarat")
+		if (
+			pending &&
+			mapped.some(
+				(m) => m.from === 'human' && m.text === pending?.text && !pendingBaseline.has(m.id)
+			)
+		) {
 			pending = null;
 		}
 	} catch (e) {
@@ -122,9 +138,28 @@ async function runTurn(text, msg, agent) {
 			/* balasan sudah diterima; kegagalan sinkronisasi akhir jangan menandai error */
 		});
 	} catch (e) {
-		msg.status = 'error';
-		if (e instanceof ApiError && e.status === 402) {
-			msg.errorNote = 'saldo';
+		// POST yang gagal ≠ pesan gagal terkirim: backend mempersist pesan human
+		// ke thread di AWAL run, jadi timeout/koneksi putus/error di tengah
+		// orkestrasi terjadi SETELAH pesan tercatat. Cek dulu ke server — kalau
+		// pesan sudah mendarat, menandai error (lalu user klik "Coba lagi")
+		// justru mengirim perintah yang sama dua kali dan memicu agent dua kali.
+		const landed = await fetchThread().then(
+			() => pending !== msg,
+			() => false // gagal cek = anggap belum terkirim; jalur error biasa
+		);
+		if (!landed) {
+			msg.status = 'error';
+			if (e instanceof ApiError && e.status === 402) {
+				msg.errorNote = 'saldo';
+			}
+		} else if (!(e instanceof ApiError)) {
+			// Error jaringan di sisi kita, tapi pesan sudah tercatat: orkestrasi
+			// kemungkinan masih berjalan di server tanpa kita pegang HTTP-nya.
+			// Biarkan poller tetap hidup sebentar supaya giliran delegasi/balasan
+			// agent tetap muncul live. (ApiError = server sudah menutup run;
+			// tidak ada lagi yang perlu ditunggu.)
+			await new Promise((r) => setTimeout(r, WATCH_MS));
+			await fetchThread().catch(() => {});
 		}
 	} finally {
 		clearInterval(poller);
@@ -177,6 +212,7 @@ export const conversation = {
 			time: clockTime(undefined),
 			status: 'sending'
 		});
+		pendingBaseline = new Set(serverMsgs.map((m) => m.id));
 		pending = msg;
 		// @mention specialist → langsung ke endpoint-nya; selain itu ke Ava.
 		await runTurn(trimmed, msg, routeAgent(trimmed));
@@ -188,6 +224,21 @@ export const conversation = {
 		if (busy || !msg || msg.id !== id || !msg.text) return;
 		msg.status = 'sending';
 		msg.errorNote = undefined;
+		// Rekonsiliasi dulu dengan thread server: POST sebelumnya bisa saja
+		// sudah mempersist pesan ini walau respons HTTP-nya gagal sampai ke
+		// kita. Kirim ulang tanpa cek = pesan dobel = agent terpicu dua kali.
+		try {
+			await fetchThread();
+		} catch {
+			/* gagal cek → anggap belum terkirim, lanjut jalur kirim ulang biasa */
+		}
+		if (pending !== msg) {
+			// Pesan ternyata sudah tercatat di server (fetchThread barusan
+			// melepasnya dari pending) — jangan POST ulang. Balasan agent, kalau
+			// run server masih hidup, ikut terambil oleh sinkronisasi barusan
+			// atau muat berikutnya.
+			return;
+		}
 		await runTurn(msg.text, msg, routeAgent(msg.text));
 	},
 
@@ -204,6 +255,7 @@ export const conversation = {
 		}
 		serverMsgs = [];
 		pending = null;
+		pendingBaseline = new Set();
 		thinking = null;
 		busy = false;
 	},
@@ -212,6 +264,7 @@ export const conversation = {
 	reset() {
 		serverMsgs = [];
 		pending = null;
+		pendingBaseline = new Set();
 		thinking = null;
 		busy = false;
 		loaded = false;
