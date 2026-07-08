@@ -968,9 +968,9 @@ button {
 .ta-mirror::-webkit-scrollbar {
 	display: none;
 }
-/* Styling token mirror wajib metric-neutral: textarea transparan di atasnya
-   menggambar caret mengikuti layout teksnya sendiri, jadi lebar advance glyph
-   mirror harus identik — font-weight/letter-spacing di sini menggeser caret. */
+/* Styling token mirror wajib metric-neutral (tanpa font-weight/padding/
+   letter-spacing): layout mirror harus identik dengan textarea di atasnya
+   supaya latar pill duduk tepat di bawah kata yang benar. */
 mark.ta-mention,
 mark.ta-mention-partial {
 	border-radius: 4px;
@@ -984,11 +984,20 @@ mark.ta-mention {
 mark.ta-mention-partial {
 	background: var(--accent-tint);
 }
+/* Composer: glyph yang terlihat digambar textarea sendiri — satu sumber untuk
+   teks + caret + seleksi, jadi tidak mungkin saling geser. Mirror di bawahnya
+   cuma menggambar latar pill; teksnya transparan. (LoginChatPreview tetap
+   pakai .ta-mirror polos dengan teks terlihat.) */
+.ta-mirror-under,
+.ta-mirror-under mark {
+	color: transparent;
+	-webkit-text-stroke: 0;
+}
 .composer-textarea.ta-over-mirror {
 	position: relative;
 	z-index: 1;
 	background: transparent;
-	color: transparent; /* mirror handles display; caret still visible */
+	color: var(--ink);
 	caret-color: var(--ink);
 	width: 100%;
 	flex: none;

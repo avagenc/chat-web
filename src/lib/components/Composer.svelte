@@ -149,7 +149,7 @@
 			{/if}
 
 			<div class="inputbar-mirror-wrap">
-				<div bind:this={mirror} class="ta-mirror" aria-hidden="true">
+				<div bind:this={mirror} class="ta-mirror ta-mirror-under" aria-hidden="true">
 					{#each tokens as t, i (i)}{#if t.kind === 'mention'}<mark class="ta-mention"
 								>{t.value}</mark
 							>{:else if t.kind === 'partial'}<mark class="ta-mention-partial">{t.value}</mark
