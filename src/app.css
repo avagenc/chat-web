@@ -734,16 +734,6 @@ button {
 		left 0.3s cubic-bezier(0.22, 0.61, 0.36, 1),
 		right 0.3s cubic-bezier(0.22, 0.61, 0.36, 1);
 }
-.composer-wrap::before {
-	content: '';
-	position: absolute;
-	bottom: 100%;
-	left: 0;
-	right: 0;
-	height: 96px;
-	background: linear-gradient(to bottom, transparent, var(--bg));
-	pointer-events: none;
-}
 .composer {
 	pointer-events: auto;
 	padding-top: 12px;
