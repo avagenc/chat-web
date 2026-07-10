@@ -1,7 +1,7 @@
 <script>
 	/* Indikator processing umum — satu untuk semua agent (orkestrasi terjadi
 	   di server; giliran agent yang sebenarnya muncul lewat poll thread).
-	   Mark Avagenc ukuran tetap dengan sapuan glow aksen (`.mark-sweep`)
+	   Mark Avagenc ukuran tetap: ink dengan sapuan kilau putih (`.mark-sweep`)
 	   + status whimsical yang berganti-ganti. */
 	const STATUSES = [
 		'combobulating',

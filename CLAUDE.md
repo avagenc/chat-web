@@ -213,8 +213,9 @@ OAuth, dan `/link/callback/[integration]` halaman callback OAuth linking.)
    menerima teks.)
 5. **Thinking** (`.thinking`): indikator processing UMUM, satu untuk semua agent
    (bukan per-agent — orkestrasi terjadi di server): mark Avagenc telanjang
-   ukuran tetap — ink dengan sapuan glow aksen melintasi glyph (`.mark-sweep`,
-   mask SVG + keyframes `glow-sweep`; reduced-motion = mark aksen statis) +
+   ukuran tetap — ink dengan sapuan kilau putih melintasi glyph (`.mark-sweep`,
+   mask SVG + keyframes `glow-sweep`; reduced-motion = pulse opacity pelan
+   `mark-pulse`, bukan statis — indikator loading itu status esensial) +
    status whimsical polos yang berganti tiap ~2.4s (`.thinking-status`, daftar
    `STATUSES` di `Thinking.svelte`) — sengaja TANPA lingkaran avatar dan TANPA
    bubble chat. Muncul selama `POST /ava` in-flight.
