@@ -212,11 +212,12 @@ OAuth, dan `/link/callback/[integration]` halaman callback OAuth linking.)
    accept, `Esc` tutup. (Voice note & attach image sudah dihapus — backend hanya
    menerima teks.)
 5. **Thinking** (`.thinking`): indikator processing UMUM, satu untuk semua agent
-   (bukan per-agent — orkestrasi terjadi di server): mark Avagenc telanjang yang
-   "bernapas" (keyframes `breathe`) + status whimsical polos yang berganti tiap
-   ~2.4s (`.thinking-status`, daftar `STATUSES` di `Thinking.svelte`) — sengaja
-   TANPA lingkaran avatar dan TANPA bubble chat. Muncul selama `POST /ava`
-   in-flight.
+   (bukan per-agent — orkestrasi terjadi di server): mark Avagenc telanjang
+   ukuran tetap — ink dengan sapuan glow aksen melintasi glyph (`.mark-sweep`,
+   mask SVG + keyframes `glow-sweep`; reduced-motion = mark aksen statis) +
+   status whimsical polos yang berganti tiap ~2.4s (`.thinking-status`, daftar
+   `STATUSES` di `Thinking.svelte`) — sengaja TANPA lingkaran avatar dan TANPA
+   bubble chat. Muncul selama `POST /ava` in-flight.
 6. **Chat-info page** (`.info-page-inner`): identity block, scroller chip agent
    (aktif + teaser "Soon"; tap → `.agent-detail`), row "Cari di chat", grup
    "Kelola" dengan **satu** row destruktif **Reset chat & knowledge** →
@@ -284,7 +285,7 @@ OAuth, dan `/link/callback/[integration]` halaman callback OAuth linking.)
 - **Logout** → signOut Firebase; store conversation/postera/wallet di-reset.
 
 **Motion (port persis).** Easing global `--ease`. `rise` (enter row/float 8px/0.42s),
-`fade` (overlay), `slidein`/`slidein-left` (side-dock 0.30s), `blink` (thinking),
+`fade` (overlay), `slidein`/`slidein-left` (side-dock 0.30s), `glow-sweep` (thinking),
 `tw-blink` (caret typewriter), `spin-refresh` (refresh Postera). Push panel di
 `.canvas`/`.composer-wrap`/`.top-fade` = 0.30s. Hormati `prefers-reduced-motion`.
 

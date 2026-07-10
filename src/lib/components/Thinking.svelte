@@ -1,9 +1,8 @@
 <script>
-	import Logo from './Logo.svelte';
-
 	/* Indikator processing umum — satu untuk semua agent (orkestrasi terjadi
 	   di server; giliran agent yang sebenarnya muncul lewat poll thread).
-	   Mark Avagenc "bernapas" + status whimsical yang berganti-ganti. */
+	   Mark Avagenc ukuran tetap dengan sapuan glow aksen (`.mark-sweep`)
+	   + status whimsical yang berganti-ganti. */
 	const STATUSES = [
 		'combobulating',
 		'bomboclating',
@@ -39,7 +38,7 @@
 <!-- mark + status telanjang — tanpa lingkaran avatar, tanpa bubble chat -->
 <div class="row agent thinking">
 	<div class="bubble-wrap">
-		<div class="mark-slot"><Logo size={18} variant="accent" /></div>
+		<div class="mark-slot"><span class="mark-sweep" aria-hidden="true"></span></div>
 		{#key idx}
 			<span class="thinking-status">{order[idx]}…</span>
 		{/key}

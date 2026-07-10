@@ -438,7 +438,7 @@ button {
 	background: var(--accent-tint-strong);
 }
 
-/* ---- thinking indicator (general: breathing Avagenc mark + whimsical
+/* ---- thinking indicator (general: glow-sweep Avagenc mark + whimsical
    status — bare, no avatar circle and no chat bubble) ---- */
 .thinking .bubble-wrap {
 	align-items: center;
@@ -451,6 +451,16 @@ button {
 	display: grid;
 	place-items: center;
 }
+/* The mark holds its size; only its color animates — ink at rest with an
+   accent sheen sweeping across the glyph. The glyph shape comes from the
+   mask; the sweep is a gradient band slid via background-position. */
+.thinking .mark-sweep {
+	width: 18px;
+	height: 18px;
+	background-color: var(--accent); /* reduced-motion fallback: static accent mark */
+	-webkit-mask: url('/avagenc-ink.svg') center / contain no-repeat;
+	mask: url('/avagenc-ink.svg') center / contain no-repeat;
+}
 .thinking-status {
 	font-family: var(--sans);
 	font-size: 13px;
@@ -458,22 +468,34 @@ button {
 	color: var(--ink-muted);
 }
 @media (prefers-reduced-motion: no-preference) {
-	.thinking .mark-slot .logo-mark {
-		animation: breathe 2.1s ease-in-out infinite;
+	.thinking .mark-sweep {
+		background-color: var(--ink);
+		background-image: linear-gradient(
+			110deg,
+			transparent 35%,
+			color-mix(in srgb, var(--accent) 55%, transparent) 43%,
+			var(--accent) 50%,
+			color-mix(in srgb, var(--accent) 55%, transparent) 57%,
+			transparent 65%
+		);
+		background-size: 300% 100%;
+		background-repeat: no-repeat;
+		background-position: 100% 0;
+		animation: glow-sweep 2.1s infinite;
 	}
 	.thinking-status {
 		animation: fade 0.3s var(--ease) both;
 	}
 }
-@keyframes breathe {
-	0%,
-	100% {
-		transform: scale(0.88);
-		opacity: 0.45;
+/* band glides across (ease-in-out), then rests on ink until the next pass */
+@keyframes glow-sweep {
+	0% {
+		background-position: 100% 0;
+		animation-timing-function: ease-in-out;
 	}
-	50% {
-		transform: scale(1.22);
-		opacity: 1;
+	62%,
+	100% {
+		background-position: 0% 0;
 	}
 }
 .dot {
