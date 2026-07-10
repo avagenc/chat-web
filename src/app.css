@@ -734,11 +734,11 @@ button {
 		left 0.3s cubic-bezier(0.22, 0.61, 0.36, 1),
 		right 0.3s cubic-bezier(0.22, 0.61, 0.36, 1);
 }
+/* chrome komposer transparan — pesan scroll di belakang & terpotong
+   oleh pill-nya sendiri (seperti iOS), bukan oleh band latar */
 .composer {
-	pointer-events: auto;
-	padding-top: 12px;
+	pointer-events: none;
 	padding-bottom: 20px;
-	background: var(--bg);
 }
 
 /* image preview strip above input */
@@ -776,6 +776,7 @@ button {
 }
 
 .inputbar {
+	pointer-events: auto;
 	display: flex;
 	align-items: flex-end;
 	gap: 8px;
@@ -783,6 +784,8 @@ button {
 	border: 1px solid var(--line-strong);
 	border-radius: 22px;
 	padding: 6px 6px 6px 8px;
+	/* float sejati di atas thread — shadow hangat halus, bukan pemisah band */
+	box-shadow: 0 6px 20px rgba(44, 35, 28, 0.08);
 	transition: border-color 0.18s var(--ease);
 }
 .inputbar:focus-within {
