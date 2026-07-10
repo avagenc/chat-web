@@ -734,11 +734,29 @@ button {
 		left 0.3s cubic-bezier(0.22, 0.61, 0.36, 1),
 		right 0.3s cubic-bezier(0.22, 0.61, 0.36, 1);
 }
+/* alas di bawah pill: pesan tidak boleh terlihat di celah antara pill dan
+   tepi bawah viewport. Opaque sampai 46px (menyelip di balik sudut bawah
+   pill, radius 22px), lalu fade pendek yang normalnya tersembunyi di balik
+   pill (top pill minimum 72px) — di viewport aneh tepinya jadi fade halus,
+   bukan garis potong. */
+.composer-wrap::before {
+	content: '';
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	height: 64px;
+	background: linear-gradient(to bottom, transparent, var(--bg) 18px);
+}
 /* chrome komposer transparan — pesan scroll di belakang & terpotong
    oleh pill-nya sendiri (seperti iOS), bukan oleh band latar */
 .composer {
 	pointer-events: none;
 	padding-bottom: 20px;
+	/* pill sedikit lebih lebar dari kolom pesan (seperti iOS) supaya bubble
+	   tidak mengintip di samping sudut atas pill */
+	padding-left: 12px;
+	padding-right: 12px;
 }
 
 /* image preview strip above input */
