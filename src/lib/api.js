@@ -30,7 +30,7 @@ export function timezone() {
 
 /**
  * @param {string} path mis. '/ava'
- * @param {{ method?: string, body?: unknown }} [opts]
+ * @param {{ method?: string, body?: unknown, signal?: AbortSignal }} [opts]
  * @returns {Promise<any>} JSON hasil, atau null untuk 204
  */
 export async function api(path, opts = {}) {
@@ -44,7 +44,8 @@ export async function api(path, opts = {}) {
 			'time-zone': timezone(),
 			...(opts.body !== undefined ? { 'Content-Type': 'application/json' } : {})
 		},
-		body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined
+		body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
+		signal: opts.signal
 	});
 	if (res.status === 204) return null;
 	if (!res.ok) {

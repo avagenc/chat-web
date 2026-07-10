@@ -45,8 +45,7 @@
 	/** @typedef {import('$lib/agents.js').Message} Msg */
 	/** @type {Msg[]} */
 	let messages = $state([]);
-	/** @type {{ agent: string } | null} */
-	let thinking = $state(null);
+	let thinking = $state(false);
 	let typingText = $state('');
 	/** @type {HTMLElement | undefined} */
 	let scroller;
@@ -110,11 +109,11 @@
 
 	/** @param {string} from @param {string} text */
 	async function agent(from, text) {
-		thinking = { agent: from };
+		thinking = true;
 		scrollDown();
 		await delay(950 + Math.random() * 650);
 		if (!alive) return;
-		thinking = null;
+		thinking = false;
 		messages = [...messages, { id: `pv-${++msgId}`, from, type: 'text', text, time: nowTime() }];
 		scrollDown();
 		await delay(500);
@@ -123,7 +122,7 @@
 	async function play() {
 		while (alive) {
 			messages = [];
-			thinking = null;
+			thinking = false;
 			typingText = '';
 			await delay(700);
 			for (const step of SCRIPT) {
@@ -171,7 +170,7 @@
 					<Message {msg} grouped={groupedAt(i)} onOpenImage={noop} onRetry={noop} />
 				{/each}
 				{#if thinking}
-					<Thinking agent={thinking.agent} />
+					<Thinking />
 				{/if}
 			</div>
 		</div>

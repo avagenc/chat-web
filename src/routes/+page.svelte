@@ -272,14 +272,18 @@
 							/>
 						{/each}
 						{#if conversation.thinking}
-							<Thinking agent={conversation.thinking.agent} />
+							<Thinking />
 						{/if}
 					</div>
 				{/if}
 			</main>
 
 			{#if !session.search.active}
-				<Composer busy={conversation.busy} onSendText={(t) => conversation.sendText(t)} />
+				<Composer
+					busy={conversation.busy}
+					onSendText={(t) => conversation.sendText(t)}
+					onCancel={() => conversation.cancelTurn()}
+				/>
 			{/if}
 		{:else}
 			<main class="canvas info-view">

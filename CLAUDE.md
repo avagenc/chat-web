@@ -203,12 +203,19 @@ OAuth, dan `/link/callback/[integration]` halaman callback OAuth linking.)
 4. **Composer** (`.composer-wrap`/`.inputbar`): fixed bawah, inset mengikuti lebar
    panel. Pill `--surface`, border → `--accent` on focus-within. Textarea
    auto-grow (max 132px) di atas **mirror div** yang me-render highlight @mention
-   live. Kanan: tombol send (disabled saat kosong/busy; busy = menunggu balasan
-   orkestrasi). **Autocomplete @mention**: ketik `@`+partial → `.mention-popup`,
-   `↑/↓` pindah, `Tab`/`Enter` accept, `Esc` tutup. (Voice note & attach image
-   sudah dihapus — backend hanya menerima teks.)
-5. **Thinking** (`.thinking`): byline agent + bubble tiga titik `blink` (stagger
-   0.18s), ber-hue agent. Muncul selama `POST /ava` in-flight.
+   live — mengetik TETAP bisa selama busy (busy = menunggu balasan orkestrasi).
+   Kanan: tombol send (disabled saat kosong); saat busy tombol berubah jadi
+   **stop** (`Icon name="stop"`) → `conversation.cancelTurn()` (abort POST agent
+   in-flight — cukup putus HTTP, tanpa jaminan rollback server). **Autocomplete
+   @mention**: ketik `@`+partial → `.mention-popup`, `↑/↓` pindah, `Tab`/`Enter`
+   accept, `Esc` tutup. (Voice note & attach image sudah dihapus — backend hanya
+   menerima teks.)
+5. **Thinking** (`.thinking`): indikator processing UMUM, satu untuk semua agent
+   (bukan per-agent — orkestrasi terjadi di server): mark Avagenc telanjang yang
+   "bernapas" (keyframes `breathe`) + status whimsical polos yang berganti tiap
+   ~2.4s (`.thinking-status`, daftar `STATUSES` di `Thinking.svelte`) — sengaja
+   TANPA lingkaran avatar dan TANPA bubble chat. Muncul selama `POST /ava`
+   in-flight.
 6. **Chat-info page** (`.info-page-inner`): identity block, scroller chip agent
    (aktif + teaser "Soon"; tap → `.agent-detail`), row "Cari di chat", grup
    "Kelola" dengan **satu** row destruktif **Reset chat & knowledge** →
@@ -245,8 +252,11 @@ OAuth, dan `/link/callback/[integration]` halaman callback OAuth linking.)
 ## Interaksi & perilaku
 
 - **Send text** (`sendText`): append pesan human optimistis (`local-*`,
-  `status:"sending"`), tampilkan `Thinking` agent tujuan (`routeAgent`),
-  `POST {agent.endpoint} {message}`. Tanpa mention (atau >1 agent berbeda
+  `status:"sending"`), tampilkan `Thinking` (indikator umum),
+  `POST {agent.endpoint} {message}` (tujuan dari `routeAgent`). POST agent
+  di belakang kunci single-flight (`postAgentTurn`) — tidak boleh ada dua
+  POST agent bersamaan dari klien; `cancelTurn()` meng-abort POST in-flight
+  (AbortController via `api({signal})`), lalu rekonsiliasi sekali ke thread. Tanpa mention (atau >1 agent berbeda
   di-mention) → Ava (`/ava`) yang berorkestrasi; tepat satu agent di-mention →
   langsung ke endpoint agent itu. Selama in-flight, thread di-poll tiap ~2.2s (`GET /sessions/messages`)
   supaya giliran delegasi (`@zee …`) & balasan specialist muncul live —
@@ -288,7 +298,7 @@ Global (module/store level):
 - `authed`/`ready`/`user`/`profile` — dari Firebase Auth (`session.svelte.js`)
 - `messages` — dari thread backend + pesan optimistis; `{ id, from, type:'text',
 text, time, at?, status?, errorNote? }`
-- `thinking: { agent } | null`, `busy`, `loaded`
+- `thinking: boolean` (indikator processing umum), `busy`, `loaded`
 - `panel: 'profile' | 'postera' | null`
 - `view: 'chat' | 'info'`
 - `lightbox: src | null`, `toast: string | null`

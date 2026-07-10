@@ -460,12 +460,41 @@ button {
 	background: var(--accent-tint-strong);
 }
 
-/* ---- thinking indicator ---- */
-.thinking .bubble {
-	display: inline-flex;
+/* ---- thinking indicator (general: breathing Avagenc mark + whimsical
+   status — bare, no avatar circle and no chat bubble) ---- */
+.thinking .bubble-wrap {
 	align-items: center;
-	gap: 5px;
-	padding: 14px 16px;
+	padding: 4px 0;
+}
+.thinking .avatar-slot {
+	display: grid;
+	place-items: center;
+	height: 26px;
+}
+.thinking-status {
+	font-family: var(--sans);
+	font-size: 13px;
+	font-weight: 500;
+	color: var(--ink-muted);
+}
+@media (prefers-reduced-motion: no-preference) {
+	.thinking .avatar-slot .logo-mark {
+		animation: breathe 2.1s ease-in-out infinite;
+	}
+	.thinking-status {
+		animation: fade 0.3s var(--ease) both;
+	}
+}
+@keyframes breathe {
+	0%,
+	100% {
+		transform: scale(0.88);
+		opacity: 0.45;
+	}
+	50% {
+		transform: scale(1.22);
+		opacity: 1;
+	}
 }
 .dot {
 	width: 6px;

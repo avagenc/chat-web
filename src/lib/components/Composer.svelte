@@ -4,8 +4,8 @@
 	import Logo from './Logo.svelte';
 
 	/** @typedef {import('$lib/agents.js').Agent} Agent */
-	/** @type {{ busy?: boolean, onSendText: (t: string) => void }} */
-	let { busy = false, onSendText } = $props();
+	/** @type {{ busy?: boolean, onSendText: (t: string) => void, onCancel?: () => void }} */
+	let { busy = false, onSendText, onCancel = () => {} } = $props();
 
 	let text = $state('');
 	/** @type {{ query: string, start: number }|null} */
@@ -155,22 +155,29 @@
 							>{:else if t.kind === 'partial'}<mark class="ta-mention-partial">{t.value}</mark
 							>{:else}{t.value}{/if}{/each}
 				</div>
+				<!-- mengetik tetap bisa selama giliran berjalan — hanya kirim yang terkunci -->
 				<textarea
 					bind:this={ta}
 					class="composer-textarea ta-over-mirror"
-					placeholder={busy ? 'Menunggu balasan agent…' : 'Ketik pesan…'}
+					placeholder="Ketik pesan…"
 					value={text}
 					rows="1"
-					disabled={busy}
 					oninput={handleChange}
 					onkeydown={onKey}
 					onscroll={syncScroll}
 				></textarea>
 			</div>
 
-			<button class="send-btn" onclick={send} disabled={!canSend} aria-label="kirim">
-				<Icon name="send" size={18} />
-			</button>
+			{#if busy}
+				<!-- busy → tombol stop: batalkan request agent yang in-flight -->
+				<button class="send-btn" onclick={() => onCancel()} aria-label="batalkan">
+					<Icon name="stop" size={18} />
+				</button>
+			{:else}
+				<button class="send-btn" onclick={send} disabled={!canSend} aria-label="kirim">
+					<Icon name="send" size={18} />
+				</button>
+			{/if}
 		</div>
 	</div>
 </div>

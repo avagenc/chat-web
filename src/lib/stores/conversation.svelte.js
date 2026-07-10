@@ -36,10 +36,11 @@ let pending = $state(null);
     baru mendarat — bukan pesan lama yang kebetulan teksnya identik.
     @type {Set<string>} */
 let pendingBaseline = new Set();
-/** @type {{ agent: string } | null} */
-let thinking = $state(null);
+// indikator processing umum (satu untuk semua agent — orkestrasi terjadi di
+// server, giliran agent sesungguhnya muncul lewat poll thread)
+let thinking = $state(false);
 // true selama satu giliran berjalan (POST /ava masih in-flight) — composer
-// mengunci input sampai orkestrasi selesai.
+// mengunci pengiriman (tombol kirim jadi tombol stop); mengetik tetap bisa.
 let busy = $state(false);
 // riwayat pertama sudah termuat (atau dipastikan kosong) — dipakai menahan
 // empty-state supaya tidak berkedip sebelum fetch pertama selesai.
@@ -76,6 +77,32 @@ function isNotFound(e) {
 }
 
 let sendSeq = 0; // id pesan optimistis; tidak dipersist, cukup unik se-sesi tab
+
+/** Controller POST agent yang sedang in-flight — dipegang supaya tombol stop
+    bisa membatalkan request-nya. @type {AbortController|null} */
+let turnController = null;
+
+// Kunci single-flight KHUSUS POST ke endpoint agent (scope per user — klien
+// ini selalu satu user): dua run orkestrasi paralel di thread yang sama tidak
+// boleh terjadi dari sisi kita. Guard `busy` di jalur normal sudah mencegah,
+// tapi jalur yang sempat await sebelum runTurn (mis. retry yang rekonsiliasi
+// dulu) bisa lolos guard itu dua kali — kunci ini penegasan terakhirnya.
+let agentPostInFlight = false;
+
+/**
+ * @param {string} endpoint
+ * @param {string} message
+ * @param {AbortSignal} signal
+ */
+async function postAgentTurn(endpoint, message, signal) {
+	if (agentPostInFlight) throw new Error('agent turn already in flight');
+	agentPostInFlight = true;
+	try {
+		return await api(endpoint, { method: 'POST', body: { message }, signal });
+	} finally {
+		agentPostInFlight = false;
+	}
+}
 
 // Nomor urut fetch: poll yang masih in-flight tidak boleh menimpa hasil fetch
 // yang dimulai belakangan (mis. sinkronisasi final setelah POST /ava) dengan
@@ -122,7 +149,9 @@ async function fetchThread() {
  */
 async function runTurn(text, msg, agent) {
 	busy = true;
-	thinking = { agent: agent.id };
+	thinking = true;
+	const controller = new AbortController();
+	turnController = controller;
 	// poll thread selama orkestrasi supaya giliran delegasi/specialist muncul live
 	const poller = setInterval(() => {
 		fetchThread().catch(() => {
@@ -132,12 +161,20 @@ async function runTurn(text, msg, agent) {
 	try {
 		// routeAgent selalu mengembalikan agent roster (punya endpoint); '/ava'
 		// hanya fallback tipe untuk teaser tanpa endpoint.
-		await api(agent.endpoint ?? '/ava', { method: 'POST', body: { message: text } });
+		await postAgentTurn(agent.endpoint ?? '/ava', text, controller.signal);
 		msg.status = undefined;
 		await fetchThread().catch(() => {
 			/* balasan sudah diterima; kegagalan sinkronisasi akhir jangan menandai error */
 		});
 	} catch (e) {
+		if (controller.signal.aborted) {
+			// User membatalkan (tombol stop) — cukup putuskan request HTTP-nya
+			// dan berhenti menunggu. Pesan human sudah dipersist backend di awal
+			// run; apa pun yang masih ditulis orkestrasi muncul di fetch berikut.
+			await fetchThread().catch(() => {});
+			if (pending === msg) msg.status = undefined;
+			return;
+		}
 		// POST yang gagal ≠ pesan gagal terkirim: backend mempersist pesan human
 		// ke thread di AWAL run, jadi timeout/koneksi putus/error di tengah
 		// orkestrasi terjadi SETELAH pesan tercatat. Cek dulu ke server — kalau
@@ -162,8 +199,9 @@ async function runTurn(text, msg, agent) {
 			await fetchThread().catch(() => {});
 		}
 	} finally {
+		turnController = null;
 		clearInterval(poller);
-		thinking = null;
+		thinking = false;
 		busy = false;
 		// giliran barusan menambah biaya — segarkan saldo & pemakaian di latar
 		wallet.refresh().catch(() => {});
@@ -218,6 +256,13 @@ export const conversation = {
 		await runTurn(trimmed, msg, routeAgent(trimmed));
 	},
 
+	/** Batalkan POST agent yang sedang in-flight (tombol kirim jadi tombol stop
+	    selama giliran berjalan). Hanya memutus request HTTP — yang sudah
+	    telanjur dipersist backend dibiarkan; fetch berikutnya merekonsiliasi. */
+	cancelTurn() {
+		turnController?.abort();
+	},
+
 	/** Kirim ulang pesan optimistis yang gagal. @param {string} id */
 	async retry(id) {
 		const msg = pending;
@@ -232,11 +277,14 @@ export const conversation = {
 		} catch {
 			/* gagal cek → anggap belum terkirim, lanjut jalur kirim ulang biasa */
 		}
-		if (pending !== msg) {
-			// Pesan ternyata sudah tercatat di server (fetchThread barusan
-			// melepasnya dari pending) — jangan POST ulang. Balasan agent, kalau
-			// run server masih hidup, ikut terambil oleh sinkronisasi barusan
-			// atau muat berikutnya.
+		if (busy || pending !== msg) {
+			// `pending !== msg`: pesan ternyata sudah tercatat di server
+			// (fetchThread barusan melepasnya dari pending) — jangan POST ulang;
+			// balasan agent, kalau run server masih hidup, ikut terambil oleh
+			// sinkronisasi barusan atau muat berikutnya. `busy`: guard di atas
+			// dicek SEBELUM await — klik "Coba lagi" kedua yang menyusul selama
+			// rekonsiliasi bisa lolos guard itu, jadi dicek ulang di sini supaya
+			// tidak ada dua runTurn (dua POST agent) untuk pesan yang sama.
 			return;
 		}
 		await runTurn(msg.text, msg, routeAgent(msg.text));
@@ -256,7 +304,7 @@ export const conversation = {
 		serverMsgs = [];
 		pending = null;
 		pendingBaseline = new Set();
-		thinking = null;
+		thinking = false;
 		busy = false;
 	},
 
@@ -265,7 +313,7 @@ export const conversation = {
 		serverMsgs = [];
 		pending = null;
 		pendingBaseline = new Set();
-		thinking = null;
+		thinking = false;
 		busy = false;
 		loaded = false;
 	}

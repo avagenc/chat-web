@@ -1,22 +1,47 @@
 <script>
-	import { AGENTS } from '$lib/agents.js';
+	import Logo from './Logo.svelte';
 
-	/** @type {{ agent: string }} */
-	let { agent } = $props();
-	const a = $derived(AGENTS[agent]);
+	/* Indikator processing umum — satu untuk semua agent (orkestrasi terjadi
+	   di server; giliran agent yang sebenarnya muncul lewat poll thread).
+	   Mark Avagenc "bernapas" + status whimsical yang berganti-ganti. */
+	const STATUSES = [
+		'combobulating',
+		'bomboclating',
+		'invading syria',
+		'gatau ah males',
+		'praying',
+		'manifesting',
+		'reticulating splines',
+		'ngopi dulu bentar',
+		'summoning the council',
+		'menghitung domba',
+		'downloading wisdom',
+		'percolating',
+		'mikir keras banget',
+		'consulting the elders',
+		'menata ulang alam semesta',
+		'polishing neurons'
+	];
+	/** Lama tiap status tampil sebelum ganti. */
+	const DWELL_MS = 2400;
+
+	const order = [...STATUSES].sort(() => Math.random() - 0.5);
+	let idx = $state(0);
+
+	$effect(() => {
+		const t = setInterval(() => {
+			idx = (idx + 1) % order.length;
+		}, DWELL_MS);
+		return () => clearInterval(t);
+	});
 </script>
 
-<div class="row agent thinking" style:--agent={a.varc}>
-	<div class="byline">
-		<span class="name">{a.name}</span>
-		<span class="role">· {a.role}</span>
-	</div>
+<!-- mark + status telanjang — tanpa lingkaran avatar, tanpa bubble chat -->
+<div class="row agent thinking">
 	<div class="bubble-wrap">
-		<div class="avatar-slot"></div>
-		<div class="bubble">
-			<span class="dot" style:--agent={a.varc}></span>
-			<span class="dot" style:--agent={a.varc}></span>
-			<span class="dot" style:--agent={a.varc}></span>
-		</div>
+		<div class="avatar-slot"><Logo size={18} variant="accent" /></div>
+		{#key idx}
+			<span class="thinking-status">{order[idx]}…</span>
+		{/key}
 	</div>
 </div>
