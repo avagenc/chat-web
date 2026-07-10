@@ -251,12 +251,12 @@ button {
 	align-items: flex-start;
 }
 
-/* name + avatar header line for agents */
+/* name header line for agents */
 .byline {
 	display: flex;
 	align-items: baseline;
 	gap: 7px;
-	padding-left: 37px;
+	padding-left: 4px;
 	margin-bottom: 2px;
 	white-space: nowrap;
 }
@@ -277,21 +277,6 @@ button {
 	display: none;
 }
 
-.avatar {
-	flex: none;
-	width: 26px;
-	height: 26px;
-	border-radius: 50%;
-	display: grid;
-	place-items: center;
-	font-family: var(--serif);
-	font-size: 13px;
-	font-weight: 500;
-	color: #fff;
-	background: var(--agent, var(--accent));
-	box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
-}
-
 .bubble-wrap {
 	position: relative;
 	display: flex;
@@ -302,13 +287,6 @@ button {
 }
 .row.human .bubble-wrap {
 	max-width: 74%;
-}
-.bubble-wrap .avatar-slot {
-	width: 26px;
-	flex: none;
-}
-.row.grouped .avatar-slot .avatar {
-	visibility: hidden;
 }
 
 /* the bubble */
@@ -466,10 +444,12 @@ button {
 	align-items: center;
 	padding: 4px 0;
 }
-.thinking .avatar-slot {
+.thinking .mark-slot {
+	flex: none;
+	width: 26px;
+	height: 26px;
 	display: grid;
 	place-items: center;
-	height: 26px;
 }
 .thinking-status {
 	font-family: var(--sans);
@@ -478,7 +458,7 @@ button {
 	color: var(--ink-muted);
 }
 @media (prefers-reduced-motion: no-preference) {
-	.thinking .avatar-slot .logo-mark {
+	.thinking .mark-slot .logo-mark {
 		animation: breathe 2.1s ease-in-out infinite;
 	}
 	.thinking-status {

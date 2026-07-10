@@ -182,7 +182,8 @@ OAuth, dan `/link/callback/[integration]` halaman callback OAuth linking.)
    announce, live chat preview di kanan (≥880px). Hook dua baris: baris 1
    serif 38px statis, baris 2 typewriter di `--accent`.
 2. **Kanvas chat**: thread utama. Pesan Human rata kanan (bubble `--accent-tint`);
-   pesan agent rata kiri dengan byline + avatar (bubble `--surface`+`--line`).
+   pesan agent rata kiri dengan byline nama saja — tanpa avatar bulat
+   (bubble `--surface`+`--line`).
    Shell `.app` flex column fixed-height `overflow:hidden`, grain kertas via
    `.app::before`. Panel kiri/kanan adalah **side-dock** (bukan overlay, tanpa
    scrim) yang mendorong kanvas via `--panel-left`/`--panel-right`, transisi 0.30s.
@@ -194,7 +195,7 @@ OAuth, dan `/link/callback/[integration]` halaman callback OAuth linking.)
    Autoscroll: `scrollTop = scrollHeight` via rAF (bukan `scrollIntoView`).
 3. **Message row** (`.row`): entrance `rise` (8px/0.42s). Byline agent = nama
    ber-warna `--agent` + "· role" (klik → `AgentInfoFloat`). **Grouping**: kalau
-   pengirim sama & tidak error → sembunyikan byline + avatar (spacer), square-kan
+   pengirim sama & tidak error → sembunyikan byline, square-kan
    pointer corner. **Tiny variant** kalau teks cuma `@mention` (mis. `@zee`) → pill
    w500. Klik bubble → `BubbleChatInfo` (timestamp + "Salin teks"). `@mention` &
    highlight search di-render `MentionText` (split `/(@\w+)/g`). Status: `sending`

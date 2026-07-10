@@ -39,7 +39,7 @@
 <!-- mark + status telanjang — tanpa lingkaran avatar, tanpa bubble chat -->
 <div class="row agent thinking">
 	<div class="bubble-wrap">
-		<div class="avatar-slot"><Logo size={18} variant="accent" /></div>
+		<div class="mark-slot"><Logo size={18} variant="accent" /></div>
 		{#key idx}
 			<span class="thinking-status">{order[idx]}…</span>
 		{/key}

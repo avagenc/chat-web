@@ -1,7 +1,6 @@
 <script>
 	import { AGENTS } from '$lib/agents.js';
 	import { closeActivePopup } from '$lib/popup.js';
-	import Avatar from './Avatar.svelte';
 	import MentionText from './MentionText.svelte';
 	import ImageMsg from './ImageMsg.svelte';
 	import Icon from './Icon.svelte';
@@ -82,10 +81,6 @@
 	{/if}
 
 	<div class={'bubble-wrap' + (chatInfo ? ' menu-open' : '')}>
-		{#if !isHuman}
-			<div class="avatar-slot"><Avatar agent={msg.from} /></div>
-		{/if}
-
 		{#if msg.type === 'image'}
 			<ImageMsg {msg} onOpen={onOpenImage} {query} />
 		{:else}
