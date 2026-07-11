@@ -31,6 +31,8 @@
 		<circle cx="8.5" cy="9.5" r="1.6" /><path d="M21 16l-5-5L5 19" />
 	{:else if name === 'send'}
 		<path d="M5 12h13M13 6l6 6-6 6" />
+	{:else if name === 'stop'}
+		<rect x="7" y="7" width="10" height="10" rx="2" fill="currentColor" stroke="none" />
 	{:else if name === 'play'}
 		<path d="M8 5.5v13l11-6.5z" fill="currentColor" stroke="none" />
 	{:else if name === 'pause'}

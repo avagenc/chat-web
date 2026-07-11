@@ -1,30 +1,34 @@
 <script>
-	import { nowTime } from '$lib/agents.js';
+	import { onMount } from 'svelte';
+	import { posteraStore } from '$lib/stores/postera.svelte.js';
 	import Icon from '$lib/components/Icon.svelte';
 	import ActionConfirm from '$lib/components/ActionConfirm.svelte';
 
 	/** @typedef {import('$lib/agents.js').Posterum} Posterum */
-	/** @type {{ postera: Posterum[], onCancel: (id: number) => void, onClose: () => void }} */
+	/** @type {{ postera: Posterum[], onCancel: (id: string) => void, onClose: () => void }} */
 	let { postera, onCancel, onClose } = $props();
 
-	/** @type {number|null} */
+	/** @type {string|null} */
 	let openId = $state(null);
 	/** @type {Posterum|null} */
 	let confirmItem = $state(null);
 	let refreshing = $state(false);
-	let lastFetched = $state(nowTime());
 
-	function handleRefresh() {
+	async function handleRefresh() {
 		if (refreshing) return;
 		refreshing = true;
-		setTimeout(
-			() => {
-				refreshing = false;
-				lastFetched = nowTime();
-			},
-			900 + Math.random() * 700
-		);
+		try {
+			await posteraStore.load();
+		} catch {
+			/* refresh gagal: biarkan list lama; jam "Diperbarui" tidak maju */
+		} finally {
+			refreshing = false;
+		}
 	}
+
+	// Panel di-mount tiap kali dibuka (dirender kondisional di +page.svelte),
+	// jadi tarik ulang postera tepat saat panel terbuka.
+	onMount(handleRefresh);
 
 	const cancelMeta = $derived.by(() => {
 		const item = confirmItem;
@@ -65,7 +69,9 @@
 				Postera are self wake up messages Ava has scheduled for her future self. A single postera is
 				called a posterum.
 			</p>
-			<span class="postera-fetched">Diperbarui {lastFetched}</span>
+			{#if posteraStore.lastFetched}
+				<span class="postera-fetched">Diperbarui {posteraStore.lastFetched}</span>
+			{/if}
 		</div>
 		{#if postera.length === 0}
 			<div class="postera-empty">

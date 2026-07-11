@@ -1,6 +1,5 @@
 /* ============================================================
-   Avagenc — agents, user, seed data, time/wave helpers
-   (ported from reference/data.jsx + USER from screens.jsx)
+   Avagenc — agents & time helpers
    ============================================================ */
 
 /**
@@ -11,8 +10,12 @@
  * @property {string} init
  * @property {string} varc
  * @property {string} desc
+ * @property {string} [endpoint]  route backend `POST` untuk kirim pesan langsung ke agent ini (kosong untuk teaser SOON_AGENTS)
  */
 
+/* Tiap agent punya endpoint HTTP sendiri di backend (repo `chat`, cmd/http):
+   POST /ava, /zee, /yori, /rafal. Ava = orkestrator (default). Yang lain =
+   specialist yang bisa dituju langsung lewat @mention tanpa lewat Ava. */
 /** @type {Record<string, Agent>} */
 export const AGENTS = {
 	ava: {
@@ -21,152 +24,123 @@ export const AGENTS = {
 		role: 'orkestrator',
 		init: 'A',
 		varc: 'var(--ava)',
-		desc: 'Orkestrator. Dengerin kamu, lalu koordinasiin tim buat ngerjain.'
+		endpoint: '/ava',
+		desc: 'Orkestrator. Dengerin kamu, pahami kebutuhanmu, lalu koordinasiin agent yang tepat — kamu cukup ngobrol dari satu tempat.'
 	},
 	zee: {
 		id: 'zee',
 		name: 'Zee',
-		role: 'cahaya & suasana',
+		role: 'smart home (tuya smart)',
 		init: 'Z',
 		varc: 'var(--zee)',
-		desc: 'Atur cahaya & suasana — lampu, tirai, dan mood ruangan.'
+		endpoint: '/zee',
+		desc: 'Tuya smart agent. Kontrol perangkat rumah — lampu, AC, colokan, dan device Tuya lainnya.'
 	},
 	yori: {
 		id: 'yori',
 		name: 'Yori',
-		role: 'musik & audio',
+		role: 'musik (spotify)',
 		init: 'Y',
 		varc: 'var(--yori)',
-		desc: 'Urus musik & audio — playlist, volume, dan suara ruangan.'
+		endpoint: '/yori',
+		desc: 'Spotify music agent. Play, pause, ganti lagu, dan setelin playlist di akun Spotify-mu.'
 	},
-	niko: {
-		id: 'niko',
-		name: 'Niko',
-		role: 'dapur & sajian',
-		init: 'N',
-		varc: 'var(--niko)',
-		desc: 'Siapin sajian — kopi, teh, dan cemilan langsung dari dapur.'
+	rafal: {
+		id: 'rafal',
+		name: 'Rafal',
+		role: 'gmail, kontak & kalender',
+		init: 'R',
+		varc: 'var(--rafal)',
+		endpoint: '/rafal',
+		desc: 'Google Workspace agent. Urus Gmail (baca, rangkum, kirim email), kontak, sampai Google Calendar (lihat jadwal & bikin acara).'
 	}
 };
 
 export const AGENT_LIST = Object.values(AGENTS);
 
 /**
+ * Tentukan agent tujuan sebuah pesan dari @mention yang dikenal roster:
+ * - tanpa mention → Ava (orkestrator, default);
+ * - tepat satu agent yang di-mention → langsung ke agent itu (mis. "@zee nyalain
+ *   lampu" masuk ke Zee tanpa lewat Ava — kalau yang di-mention Ava sendiri,
+ *   ya Ava);
+ * - lebih dari satu agent berbeda di-mention → Ava, supaya dia yang
+ *   mengorkestrasi (perintah lintas-specialist sering butuh urutan/kerja
+ *   sekuensial yang cuma Ava yang bisa koordinasikan).
+ *
+ * Mention berulang ke agent yang sama dihitung satu (pakai himpunan unik).
+ * @param {string} text
+ * @returns {Agent}
+ */
+export function routeAgent(text) {
+	/** @type {Set<string>} */
+	const mentioned = new Set();
+	for (const m of (text || '').matchAll(/@(\w+)/g)) {
+		const id = m[1].toLowerCase();
+		if (id in AGENTS) mentioned.add(id);
+	}
+	if (mentioned.size === 1) {
+		const [only] = mentioned;
+		return AGENTS[only];
+	}
+	return AGENTS.ava;
+}
+
+/**
+ * Teaser agents — "segera hadir". Sengaja DIPISAH dari AGENTS: mereka cuma tampil
+ * sebagai teaser di panel info, tidak bisa di-@mention, dan tidak pernah jadi
+ * pengirim pesan. Jangan masukkan ke AGENTS sampai backend-nya benar-benar ada.
+ * @type {Agent[]}
+ */
+export const SOON_AGENTS = [
+	{
+		id: 'gojo',
+		name: 'Gojo',
+		role: 'transport & makanan (gojek)',
+		init: 'G',
+		varc: 'var(--gojo)',
+		desc: 'Gojek agent. Pesan GoRide & GoCar, jajan lewat GoFood, sampai kirim barang via GoSend.'
+	},
+	{
+		id: 'sophie',
+		name: 'Sophie',
+		role: 'belanja (shopee)',
+		init: 'S',
+		varc: 'var(--sophie)',
+		desc: 'Shopee agent. Cariin barang, bandingin harga, lacak paket, dan checkout keranjang.'
+	}
+];
+
+/**
  * @typedef {Object} Message
- * @property {number} id
+ * @property {string} id
  * @property {string} from
  * @property {'text'|'image'} type
  * @property {string} [text]
  * @property {string} [caption]
  * @property {string} [src]
- * @property {string} time
+ * @property {string} time  jam tampil "HH:MM"
+ * @property {string} [at]  timestamp ISO dari backend (untuk stamp lengkap)
  * @property {string} [status]
+ * @property {string} [errorNote] penyebab gagal kirim — 'saldo' = 402 dari backend
  */
 
 /**
  * @typedef {Object} Posterum
- * @property {number} id
+ * @property {string} id
  * @property {string} message
- * @property {string} awaken_at
+ * @property {string} awaken_at  label waktu bangun yang sudah diformat
  */
-
-export const USER = {
-	name: 'Ardian',
-	email: 'ardian@naturallyfunny.dev',
-	initial: 'A'
-};
-
-let __id = 100;
-export const nextId = () => ++__id;
-
-export const SEED = [
-	{
-		id: 1,
-		from: 'human',
-		type: 'text',
-		text: 'Pagi. Hari ini pengen santai di rumah aja.',
-		time: '08:12'
-	},
-	{
-		id: 2,
-		from: 'ava',
-		type: 'text',
-		text: 'Pagi. Enak banget tuh buat ngademin pikiran. Mau aku bantu siapin suasananya?',
-		time: '08:12'
-	},
-	{ id: 3, from: 'human', type: 'text', text: 'Boleh. Mau ke teras baca buku nih.', time: '08:13' },
-	{ id: 4, from: 'ava', type: 'text', text: '@zee', time: '08:13' },
-	{
-		id: 5,
-		from: 'zee',
-		type: 'text',
-		text: 'Udah aku nyalain lampu teras dan buka tirainya sedikit, biar cahayanya pas buat baca. Selamat menikmati.',
-		time: '08:13'
-	},
-	{
-		id: 6,
-		from: 'human',
-		type: 'image',
-		src: '/sample-photo.svg',
-		caption: 'View-nya lagi bagus banget pagi ini.',
-		time: '08:15'
-	},
-	{
-		id: 7,
-		from: 'ava',
-		type: 'text',
-		text: 'Cakep. Pas banget sama cuaca cerahnya. Mau ditemenin musik pelan?',
-		time: '08:15'
-	},
-	{ id: 8, from: 'human', type: 'text', text: 'Boleh, yang kalem aja.', time: '08:16' },
-	{ id: 9, from: 'ava', type: 'text', text: '@yori tolong ya, yang kalem.', time: '08:16' },
-	{
-		id: 10,
-		from: 'yori',
-		type: 'text',
-		text: 'Siap. Aku puterin playlist akustik pagi, volume aku kecilin ke 20% biar nggak ganggu bacaan.',
-		time: '08:16'
-	},
-	{ id: 11, from: 'human', type: 'text', text: 'Tolong siapin kopi', time: '08:18' },
-	{ id: 12, from: 'ava', type: 'text', text: 'Noted. @niko bikinin kopinya ya.', time: '08:18' },
-	{
-		id: 13,
-		from: 'niko',
-		type: 'text',
-		text: 'Kopi tubruk lagi diseduh, kira-kira 4 menit lagi siap. Nanti aku anter ke teras.',
-		time: '08:18'
-	},
-	{ id: 14, from: 'human', type: 'text', text: 'Mantap, makasih semuanya.', time: '08:19' },
-	{
-		id: 15,
-		from: 'ava',
-		type: 'text',
-		text: 'Sama-sama. Selamat nyantai ya, panggil aja kalau butuh apa-apa.',
-		time: '08:19'
-	}
-];
-
-export const SEED_POSTERA = [
-	{
-		id: 1,
-		message:
-			'Human meminta gorden teras ditutup pukul 17.00. Sekarang sudah waktunya, perintahkanlah Zee untuk menutup gorden teras..',
-		awaken_at: '17:00'
-	},
-	{
-		id: 2,
-		message: 'Ingatkan human untuk minum air. Human diketahui jarang minum di sore hari.',
-		awaken_at: '19:30'
-	},
-	{
-		id: 3,
-		message: 'Playlist malam sudah diqueue sejak tadi. Aktifkan mode tenang via Yori sekarang.',
-		awaken_at: '21:00'
-	}
-];
 
 export function nowTime() {
 	const d = new Date();
+	return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+/** @param {string|undefined} iso @returns {string} "HH:MM" lokal */
+export function clockTime(iso) {
+	const d = iso ? new Date(iso) : new Date();
+	if (Number.isNaN(d.getTime())) return nowTime();
 	return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
@@ -186,11 +160,12 @@ const ID_MONTHS = [
 	'November',
 	'Desember'
 ];
-/** @param {string} [time] */
-export function fullStamp(time) {
-	const d = new Date();
-	return `${ID_DAYS[d.getDay()]}, ${d.getDate()} ${ID_MONTHS[d.getMonth()]} ${d.getFullYear()} · pukul ${time || nowTime()}`;
+/**
+ * @param {string} [time] jam "HH:MM" (fallback saat `at` tidak ada)
+ * @param {string} [at] timestamp ISO pesan — dipakai agar tanggalnya ikut tanggal pesan, bukan hari ini
+ */
+export function fullStamp(time, at) {
+	const parsed = at ? new Date(at) : new Date();
+	const d = Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+	return `${ID_DAYS[d.getDay()]}, ${d.getDate()} ${ID_MONTHS[d.getMonth()]} ${d.getFullYear()} · pukul ${time || clockTime(at)}`;
 }
-
-/** @type {<T>(arr: T[]) => T} */
-export const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];

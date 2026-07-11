@@ -2,7 +2,6 @@
 	import { session } from '$lib/stores/session.svelte.js';
 	import { conversation } from '$lib/stores/conversation.svelte.js';
 	import { posteraStore } from '$lib/stores/postera.svelte.js';
-	import { USER } from '$lib/agents.js';
 
 	import Login from '$lib/components/Login.svelte';
 	import Icon from '$lib/components/Icon.svelte';
@@ -80,20 +79,26 @@
 			};
 	}
 
-	function clearChat() {
-		conversation.clear();
+	// Reset percakapan: menghapus riwayat chat sekaligus knowledge (di Zep
+	// keduanya terikat — lihat conversation.clear()).
+	async function clearChat() {
 		session.panel = null;
 		session.view = 'chat';
-		session.flashToast('Riwayat chat dihapus');
+		try {
+			await conversation.clear();
+			session.flashToast('Chat direset');
+		} catch {
+			session.flashToast('Gagal mereset chat. Coba lagi.');
+		}
 	}
-	function clearKnowledge() {
-		session.panel = null;
-		session.flashToast('Knowledge dihapus');
-	}
-	/** @param {number} id */
-	function cancelPosterum(id) {
-		posteraStore.cancel(id);
-		session.flashToast('Posterum dibatalkan');
+	/** @param {string} id */
+	async function cancelPosterum(id) {
+		try {
+			await posteraStore.cancel(id);
+			session.flashToast('Posterum dibatalkan');
+		} catch {
+			session.flashToast('Gagal membatalkan posterum. Coba lagi.');
+		}
 	}
 
 	/** @param {number} i */
@@ -103,7 +108,14 @@
 	};
 </script>
 
-{#if !session.authed}
+<svelte:head>
+	<title>{session.authed ? 'Avagenc Chat' : 'Masuk · Avagenc Chat'}</title>
+</svelte:head>
+
+{#if !session.ready}
+	<!-- Firebase masih memulihkan sesi: tahan render (layar polos sekejap)
+	     supaya user yang sudah login tidak melihat kedip layar Login. -->
+{:else if !session.authed}
 	<Login onLogin={() => session.login()} />
 {:else}
 	<div
@@ -169,10 +181,10 @@
 				onclick={() => session.togglePanel('profile')}
 				aria-label="profil"
 			>
-				<span class="mini-avatar">{USER.initial}</span>
+				<span class="mini-avatar">{session.profile.initial}</span>
 				<span class="profile-tip">
-					<span class="pt-name">{USER.name}</span>
-					<span class="pt-email">{USER.email}</span>
+					<span class="pt-name">{session.profile.name}</span>
+					<span class="pt-email">{session.profile.email}</span>
 				</span>
 			</button>
 		{/if}
@@ -220,25 +232,28 @@
 		<!-- main area -->
 		{#if session.view === 'chat'}
 			<main class="canvas" bind:this={canvas}>
-				{#if conversation.empty}
+				{#if !conversation.loaded}
+					<!-- riwayat masih ditarik dari backend — tahan render supaya
+					     empty-state tidak berkedip sebelum fetch pertama selesai -->
+				{:else if conversation.empty}
 					<div class="center" style="display:flex;flex-direction:column;flex:1;min-height:100%">
 						<div class="empty">
 							<div class="mark"><Logo size={26} variant="accent" /></div>
 							<h2>Hello, Human. We have been longing to serve you! What do you need?</h2>
-							<p>SIlahkan coba mulai percakapan dengan contoh pesan berikut:</p>
+							<p>Silakan coba mulai percakapan dengan contoh pesan berikut:</p>
 							<div class="suggest">
-								<button
-									class="chip"
-									onclick={() => conversation.sendText('Tolong nyalain lampu teras dong')}
+								<button class="chip" onclick={() => conversation.sendText('Kenalan dong!')}
 									>Kenalan dong!</button
 								>
 								<button
 									class="chip"
-									onclick={() => conversation.sendText('Puterin musik yang kalem')}
+									onclick={() => conversation.sendText('Avagenc Chat nih apa ya?')}
 									>Avagenc Chat nih apa ya?</button
 								>
-								<button class="chip" onclick={() => conversation.sendText('Bikinin kopi dong')}
-									>Spotifyku udah terhubung apa belum?</button
+								<button
+									class="chip"
+									onclick={() => conversation.sendText('Kamu bisa bantu apa aja?')}
+									>Kamu bisa bantu apa aja?</button
 								>
 							</div>
 						</div>
@@ -257,7 +272,7 @@
 							/>
 						{/each}
 						{#if conversation.thinking}
-							<Thinking agent={conversation.thinking.agent} />
+							<Thinking />
 						{/if}
 					</div>
 				{/if}
@@ -265,17 +280,14 @@
 
 			{#if !session.search.active}
 				<Composer
+					busy={conversation.busy}
 					onSendText={(t) => conversation.sendText(t)}
-					onSendImage={(src, caption) => conversation.sendImage(src, caption)}
+					onCancel={() => conversation.cancelTurn()}
 				/>
 			{/if}
 		{:else}
 			<main class="canvas info-view">
-				<ChatInfoPage
-					onSearch={() => session.openSearch()}
-					onClearChat={clearChat}
-					onClearKnowledge={clearKnowledge}
-				/>
+				<ChatInfoPage onSearch={() => session.openSearch()} onClearChat={clearChat} />
 			</main>
 		{/if}
 
@@ -294,8 +306,10 @@
 		{#if session.lightbox}
 			<Lightbox src={session.lightbox} onClose={() => (session.lightbox = null)} />
 		{/if}
-		{#if session.toast}
-			<div class="toast"><Icon name="check" size={15} />{session.toast}</div>
-		{/if}
 	</div>
+{/if}
+
+<!-- di luar gate auth supaya toast error login juga tampil di layar Login -->
+{#if session.toast}
+	<div class="toast"><Icon name="check" size={15} />{session.toast}</div>
 {/if}

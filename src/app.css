@@ -30,7 +30,9 @@
 	--ava: oklch(0.6 0.09 55); /* terracotta  */
 	--zee: oklch(0.62 0.085 95); /* warm amber  */
 	--yori: oklch(0.58 0.075 155); /* muted sage  */
-	--niko: oklch(0.59 0.07 248); /* slate clay  */
+	--rafal: oklch(0.59 0.07 248); /* slate clay  */
+	--gojo: oklch(0.6 0.085 150); /* gojek green  */
+	--sophie: oklch(0.62 0.1 42); /* shopee orange */
 
 	--radius: 16px;
 	--radius-sm: 10px;
@@ -249,12 +251,12 @@ button {
 	align-items: flex-start;
 }
 
-/* name + avatar header line for agents */
+/* name header line for agents */
 .byline {
 	display: flex;
 	align-items: baseline;
 	gap: 7px;
-	padding-left: 37px;
+	padding-left: 4px;
 	margin-bottom: 2px;
 	white-space: nowrap;
 }
@@ -275,21 +277,6 @@ button {
 	display: none;
 }
 
-.avatar {
-	flex: none;
-	width: 26px;
-	height: 26px;
-	border-radius: 50%;
-	display: grid;
-	place-items: center;
-	font-family: var(--serif);
-	font-size: 13px;
-	font-weight: 500;
-	color: #fff;
-	background: var(--agent, var(--accent));
-	box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
-}
-
 .bubble-wrap {
 	position: relative;
 	display: flex;
@@ -300,13 +287,6 @@ button {
 }
 .row.human .bubble-wrap {
 	max-width: 74%;
-}
-.bubble-wrap .avatar-slot {
-	width: 26px;
-	flex: none;
-}
-.row.grouped .avatar-slot .avatar {
-	visibility: hidden;
 }
 
 /* the bubble */
@@ -364,6 +344,16 @@ button {
 }
 .row.human .mention {
 	color: var(--accent-deep);
+}
+.mention-btn {
+	cursor: pointer;
+	border-radius: 4px;
+	padding: 0 2px;
+	margin: 0 -2px;
+	transition: background 0.14s var(--ease);
+}
+.mention-btn:hover {
+	background: var(--accent-tint);
 }
 
 /* timestamp — always visible */
@@ -448,12 +438,78 @@ button {
 	background: var(--accent-tint-strong);
 }
 
-/* ---- thinking indicator ---- */
-.thinking .bubble {
-	display: inline-flex;
+/* ---- thinking indicator (general: glow-sweep Avagenc mark + whimsical
+   status — bare, no avatar circle and no chat bubble) ---- */
+.thinking .bubble-wrap {
 	align-items: center;
-	gap: 5px;
-	padding: 14px 16px;
+	padding: 4px 0;
+}
+.thinking .mark-slot {
+	flex: none;
+	width: 26px;
+	height: 26px;
+	display: grid;
+	place-items: center;
+}
+/* The mark holds its size; only its light animates — ink at rest with a
+   white glint sweeping across the glyph. The glyph shape comes from the
+   mask; the sweep is a gradient band slid via background-position.
+   A loading indicator is essential status, so reduced-motion doesn't get a
+   static mark (reads as broken) — it gets a slow opacity pulse instead:
+   a fade, no movement. */
+.thinking .mark-sweep {
+	width: 18px;
+	height: 18px;
+	background-color: var(--ink);
+	-webkit-mask: url('/avagenc-ink.svg') center / contain no-repeat;
+	mask: url('/avagenc-ink.svg') center / contain no-repeat;
+	animation: mark-pulse 2.4s var(--ease) infinite;
+}
+.thinking-status {
+	font-family: var(--sans);
+	font-size: 13px;
+	font-weight: 500;
+	color: var(--ink-muted);
+}
+@media (prefers-reduced-motion: no-preference) {
+	.thinking .mark-sweep {
+		background-image: linear-gradient(
+			110deg,
+			transparent 32%,
+			rgba(255, 255, 255, 0.45) 44%,
+			rgba(255, 255, 255, 0.92) 50%,
+			rgba(255, 255, 255, 0.45) 56%,
+			transparent 68%
+		);
+		background-size: 300% 100%;
+		background-repeat: no-repeat;
+		background-position: 100% 0;
+		animation: glow-sweep 2.1s infinite;
+	}
+	.thinking-status {
+		animation: fade 0.3s var(--ease) both;
+	}
+}
+/* light band glides across (ease-in-out), then rests on ink until the next pass */
+@keyframes glow-sweep {
+	0% {
+		background-position: 100% 0;
+		animation-timing-function: ease-in-out;
+	}
+	62%,
+	100% {
+		background-position: 0% 0;
+	}
+}
+/* reduced-motion stand-in: the mark breathes in place — opacity only */
+@keyframes mark-pulse {
+	0%,
+	100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0.55;
+	}
 }
 .dot {
 	width: 6px;
@@ -693,21 +749,29 @@ button {
 		left 0.3s cubic-bezier(0.22, 0.61, 0.36, 1),
 		right 0.3s cubic-bezier(0.22, 0.61, 0.36, 1);
 }
+/* alas di bawah pill: pesan tidak boleh terlihat di celah antara pill dan
+   tepi bawah viewport. Opaque sampai 46px (menyelip di balik sudut bawah
+   pill, radius 22px), lalu fade pendek yang normalnya tersembunyi di balik
+   pill (top pill minimum 72px) — di viewport aneh tepinya jadi fade halus,
+   bukan garis potong. */
 .composer-wrap::before {
 	content: '';
 	position: absolute;
-	bottom: 100%;
 	left: 0;
 	right: 0;
-	height: 96px;
-	background: linear-gradient(to bottom, transparent, var(--bg));
-	pointer-events: none;
+	bottom: 0;
+	height: 64px;
+	background: linear-gradient(to bottom, transparent, var(--bg) 18px);
 }
+/* chrome komposer transparan — pesan scroll di belakang & terpotong
+   oleh pill-nya sendiri (seperti iOS), bukan oleh band latar */
 .composer {
-	pointer-events: auto;
-	padding-top: 12px;
+	pointer-events: none;
 	padding-bottom: 20px;
-	background: var(--bg);
+	/* pill sedikit lebih lebar dari kolom pesan (seperti iOS) supaya bubble
+	   tidak mengintip di samping sudut atas pill */
+	padding-left: 12px;
+	padding-right: 12px;
 }
 
 /* image preview strip above input */
@@ -745,6 +809,7 @@ button {
 }
 
 .inputbar {
+	pointer-events: auto;
 	display: flex;
 	align-items: flex-end;
 	gap: 8px;
@@ -752,6 +817,8 @@ button {
 	border: 1px solid var(--line-strong);
 	border-radius: 22px;
 	padding: 6px 6px 6px 8px;
+	/* float sejati di atas thread — shadow hangat halus, bukan pemisah band */
+	box-shadow: 0 6px 20px rgba(44, 35, 28, 0.08);
 	transition: border-color 0.18s var(--ease);
 }
 .inputbar:focus-within {
@@ -795,6 +862,17 @@ button {
 }
 .compose-btn:active {
 	transform: scale(0.92);
+}
+.compose-btn:disabled {
+	opacity: 0.4;
+	cursor: not-allowed;
+}
+.compose-btn:disabled:hover {
+	background: none;
+	color: var(--ink-muted);
+}
+.composer-textarea:disabled {
+	cursor: not-allowed;
 }
 
 .send-btn {
@@ -945,6 +1023,9 @@ button {
 .ta-mirror::-webkit-scrollbar {
 	display: none;
 }
+/* Styling token mirror wajib metric-neutral (tanpa font-weight/padding/
+   letter-spacing): layout mirror harus identik dengan textarea di atasnya
+   supaya latar pill duduk tepat di bawah kata yang benar. */
 mark.ta-mention,
 mark.ta-mention-partial {
 	border-radius: 4px;
@@ -952,19 +1033,35 @@ mark.ta-mention-partial {
 mark.ta-mention {
 	background: var(--accent-tint-strong);
 	color: var(--accent-deep);
-	font-weight: 600;
+	/* kesan semibold tanpa mengubah metrik (pengganti font-weight:600) */
+	-webkit-text-stroke: 0.3px currentColor;
 }
 mark.ta-mention-partial {
 	background: var(--accent-tint);
+}
+/* Composer: glyph yang terlihat digambar textarea sendiri — satu sumber untuk
+   teks + caret + seleksi, jadi tidak mungkin saling geser. Mirror di bawahnya
+   cuma menggambar latar pill; teksnya transparan. (LoginChatPreview tetap
+   pakai .ta-mirror polos dengan teks terlihat.) */
+.ta-mirror-under,
+.ta-mirror-under mark {
+	color: transparent;
+	-webkit-text-stroke: 0;
 }
 .composer-textarea.ta-over-mirror {
 	position: relative;
 	z-index: 1;
 	background: transparent;
-	color: transparent; /* mirror handles display; caret still visible */
+	color: var(--ink);
 	caret-color: var(--ink);
 	width: 100%;
 	flex: none;
+	/* mirror menyembunyikan scrollbar; content box kedua layer harus sama
+	   lebar supaya titik wrap identik saat teks melebihi max-height */
+	scrollbar-width: none;
+}
+.composer-textarea.ta-over-mirror::-webkit-scrollbar {
+	display: none;
 }
 /* suggestion popup */
 .mention-popup {
@@ -1389,6 +1486,8 @@ mark.ta-mention-partial {
 	font-size: 15px;
 	font-weight: 600;
 	color: var(--ink);
+	/* Menyatu dengan bg halaman login (--surface); border membulatlah yang
+	   mengindikasikan tombol, bukan beda warna. */
 	background: var(--surface);
 	border: 1px solid var(--line-strong);
 	border-radius: 13px;
@@ -1951,6 +2050,50 @@ mark.ta-mention-partial {
 	margin: 11px 0 0;
 }
 
+/* ---- teaser ("segera hadir") agents ---- */
+.agent-chip.soon {
+	position: relative;
+}
+.agent-chip.soon .agent-av {
+	filter: grayscale(0.45);
+	opacity: 0.72;
+}
+.agent-chip.soon:hover .agent-av,
+.agent-chip.soon.on .agent-av {
+	filter: grayscale(0);
+	opacity: 1;
+}
+.soon-badge {
+	position: absolute;
+	top: -3px;
+	right: 2px;
+	font-family: var(--sans);
+	font-size: 8.5px;
+	font-weight: 700;
+	letter-spacing: 0.03em;
+	text-transform: uppercase;
+	color: var(--accent-deep);
+	background: var(--surface);
+	border: 1px solid var(--accent-tint-strong);
+	border-radius: 999px;
+	padding: 1px 6px;
+	box-shadow: 0 1px 5px rgba(44, 35, 28, 0.1);
+}
+.agent-detail-soon {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-family: var(--sans);
+	font-size: 11.5px;
+	font-weight: 600;
+	color: var(--accent-deep);
+	background: var(--accent-tint);
+	border: 1px solid var(--accent-tint-strong);
+	border-radius: 999px;
+	padding: 4px 11px;
+	margin-top: 12px;
+}
+
 /* ============================================================
    Profile panel — usage + integrations
    ============================================================ */
@@ -1973,59 +2116,35 @@ mark.ta-mention-partial {
 	color: var(--ink-soft);
 	white-space: nowrap;
 }
-.pay-pill {
+/* kanan header: jam pembaruan terakhir + tombol refresh */
+.usage-refresh {
 	display: inline-flex;
 	align-items: center;
-	gap: 4px;
-	white-space: nowrap;
+	gap: 6px;
+}
+.usage-updated {
 	font-family: var(--sans);
-	font-size: 10.5px;
-	font-weight: 600;
-	letter-spacing: 0.02em;
-	color: var(--accent-deep);
-	background: var(--accent-tint);
-	padding: 4px 9px;
-	border-radius: 999px;
+	font-size: 11px;
+	color: var(--ink-faint);
+	white-space: nowrap;
 }
-.usage-main {
-	display: flex;
-	justify-content: space-between;
-	align-items: flex-end;
+/* satu angka besar (biaya hari ini) rata kanan, keterangan token di bawahnya */
+.usage-hero {
+	text-align: right;
+	padding: 2px 0 1px;
 }
-.usage-stat .big {
+.usage-hero .big {
 	font-family: var(--serif);
 	font-size: 27px;
 	font-weight: 500;
 	color: var(--ink);
 	line-height: 1;
 }
-.usage-stat.right {
-	text-align: right;
-}
-.usage-stat .unit {
+.usage-hero .unit {
 	font-family: var(--sans);
 	font-size: 11.5px;
 	color: var(--ink-faint);
-	margin-top: 5px;
-}
-.usage-bar {
-	height: 6px;
-	border-radius: 999px;
-	background: var(--bg-sunk);
-	margin-top: 14px;
-	overflow: hidden;
-}
-.usage-bar span {
-	display: block;
-	height: 100%;
-	border-radius: 999px;
-	background: linear-gradient(90deg, var(--accent), var(--accent-deep));
-}
-.usage-note {
-	font-family: var(--sans);
-	font-size: 11.5px;
-	color: var(--ink-faint);
-	margin-top: 7px;
+	margin-top: 6px;
 }
 .usage-foot {
 	display: flex;
@@ -2077,6 +2196,47 @@ mark.ta-mention-partial {
 .set-row.static:hover {
 	background: none;
 }
+/* tumpukan brand tile untuk integrasi yang mencakup beberapa produk
+   (Google Workspace = Gmail + Kontak + Kalender dalam satu grant) */
+.brand-stack {
+	display: inline-flex;
+	align-items: center;
+	flex: none;
+}
+.brand-stack[data-count='3'] > *:not(:first-child) {
+	margin-left: -9px;
+}
+/* baris agent terkait di bawah nama integrasi — nama ber-hue agent */
+.intg-agent {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+}
+.intg-agent-dot {
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	background: var(--agent);
+	flex: none;
+}
+.intg-agent-name {
+	font-weight: 600;
+	color: var(--agent);
+}
+.intg-agent-role {
+	color: var(--ink-faint);
+}
+.intg-checking {
+	font-family: var(--sans);
+	font-size: 12px;
+	color: var(--ink-faint);
+	flex: none;
+}
+.intg-on:disabled,
+.intg-connect:disabled {
+	opacity: 0.55;
+	cursor: wait;
+}
 .intg-on {
 	display: inline-flex;
 	align-items: center;
@@ -2094,6 +2254,12 @@ mark.ta-mention-partial {
 }
 .intg-on:hover {
 	background: oklch(0.55 0.09 150 / 0.16);
+}
+/* status non-interaktif (mis. Tuya yang di-link manual): tampil sebagai badge,
+   tidak bisa di-klik untuk memutus */
+.intg-on.intg-readonly {
+	cursor: default;
+	pointer-events: none;
 }
 .intg-connect {
 	font-family: var(--sans);
@@ -2485,44 +2651,6 @@ mark.ta-mention-partial {
 	padding-top: 9px;
 	border-top: 1px solid var(--line);
 	letter-spacing: 0.01em;
-}
-
-/* ============================================================
-   Pay-as-you-go tooltip
-   ============================================================ */
-.pay-pill-wrap {
-	position: relative;
-	display: inline-flex;
-}
-.pay-tooltip {
-	position: absolute;
-	bottom: calc(100% + 8px);
-	right: 0;
-	width: 220px;
-	background: var(--ink);
-	color: var(--bg);
-	font-family: var(--sans);
-	font-size: 12px;
-	line-height: 1.55;
-	padding: 10px 13px;
-	border-radius: 11px;
-	opacity: 0;
-	pointer-events: none;
-	transition: opacity 0.18s;
-	text-align: left;
-	box-shadow: 0 6px 20px rgba(44, 35, 28, 0.2);
-	z-index: 60;
-}
-.pay-tooltip::after {
-	content: '';
-	position: absolute;
-	top: 100%;
-	right: 14px;
-	border: 6px solid transparent;
-	border-top-color: var(--ink);
-}
-.pay-pill-wrap:hover .pay-tooltip {
-	opacity: 1;
 }
 
 /* ============================================================
@@ -2957,7 +3085,9 @@ mark.ta-mention-partial {
 	display: flex;
 	flex-direction: column;
 	padding: 26px 32px;
-	background: var(--bg);
+	/* Sengaja --surface (bukan --bg): bg ditukar dengan kartu preview chat
+	   supaya preview memakai --bg persis seperti kanvas chat asli. */
+	background: var(--surface);
 }
 
 .login-brand {
@@ -2979,13 +3109,23 @@ mark.ta-mention-partial {
 .login-center {
 	flex: 1;
 	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: center;
+	gap: 64px;
+	padding: 0 40px 40px;
+	animation: rise 0.5s var(--ease) 0.08s both;
+}
+
+.login-left {
+	flex: none;
+	display: flex;
 	flex-direction: column;
 	align-items: center;
 	justify-content: center;
 	text-align: center;
 	gap: 40px;
-	padding: 0 24px 80px;
-	animation: rise 0.5s var(--ease) 0.08s both;
+	max-width: 420px;
 }
 
 .login-hook h1 {
