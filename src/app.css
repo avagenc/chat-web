@@ -501,6 +501,21 @@ button {
 		background-position: 0% 0;
 	}
 }
+/* turn-error notice: the server closed a run with an error AFTER the human
+   message was persisted — the message itself sent fine (so no error state on
+   the bubble), but no agent reply is coming; say so instead of going silent.
+   Same visual language as .msg-meta.error, left-aligned like an agent turn. */
+.turn-error {
+	display: flex;
+	align-items: center;
+	gap: 7px;
+	font-family: var(--sans);
+	font-size: 12px;
+	color: var(--accent-deep);
+	padding: 4px 4px;
+	animation: rise 0.42s var(--ease) both;
+}
+
 /* reduced-motion stand-in: the mark breathes in place — opacity only */
 @keyframes mark-pulse {
 	0%,

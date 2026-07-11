@@ -82,6 +82,12 @@ Setiap agent punya variabel warna CSS `--<id>` di `src/app.css` (mis. `--ava`, `
 - **402 dari backend = saldo habis** — `sendText` menandai pesan `error` +
   `errorNote:'saldo'`; wallet & top-up yang jadi jalur pulihnya (pembayaran
   masih stub Midtrans).
+- **`turnError`** (`conversation.svelte.js`): run yang ditutup server dengan
+  `ApiError` SETELAH pesan human tercatat di thread (mis. 502 kuota model
+  provider habis, 402 di tengah run) ≠ pesan gagal terkirim — pesan TIDAK
+  ditandai error (re-POST = pesan dobel), tapi balasan juga tidak akan datang,
+  jadi diam saja menyesatkan. FE merender notice `.turn-error` di bawah thread
+  (copy per `note: 'saldo'|'server'`); hangus saat giliran berikut dimulai.
 - **ID pesan** = UUID Zep (string); pesan optimistis pakai prefix `local-`.
   Jangan kembali ke counter angka.
 
@@ -273,8 +279,10 @@ OAuth, dan `/link/callback/[integration]` halaman callback OAuth linking.)
   mendarat (dicek via `pendingBaseline`, himpunan id server saat kirim), tidak
   ada re-POST — mengirim ulang berarti pesan dobel & agent terpicu dua kali.
   Error non-`ApiError` (jaringan) dengan pesan sudah mendarat → poller
-  dibiarkan hidup ~90s (orkestrasi mungkin masih jalan di server). 402 →
-  `errorNote:'saldo'` (copy khusus di `.msg-meta`).
+  dibiarkan hidup ~90s (orkestrasi mungkin masih jalan di server). `ApiError`
+  dengan pesan sudah mendarat → server menutup run dengan error; balasan tidak
+  akan datang → set `turnError` (notice di bawah thread), pesan tetap tampil
+  normal. 402 → `errorNote:'saldo'` (copy khusus di `.msg-meta`).
 - **Search**: buka search sembunyikan composer/chrome; `matches` = id pesan yang
   teks/caption-nya memuat query (case-insensitive); `↑/↓`/Enter cycle; match aktif
   scroll ke tengah + `.active-match`.
@@ -302,6 +310,8 @@ Global (module/store level):
 - `messages` — dari thread backend + pesan optimistis; `{ id, from, type:'text',
 text, time, at?, status?, errorNote? }`
 - `thinking: boolean` (indikator processing umum), `busy`, `loaded`
+- `turnError: { note: 'saldo' | 'server' } | null` — run ditutup server dengan
+  error setelah pesan human tercatat (notice `.turn-error` di bawah thread)
 - `panel: 'profile' | 'postera' | null`
 - `view: 'chat' | 'info'`
 - `lightbox: src | null`, `toast: string | null`

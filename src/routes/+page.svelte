@@ -36,8 +36,9 @@
 
 	// autoscroll on new message / thinking change (not while searching)
 	$effect(() => {
-		// re-run whenever the message list or thinking indicator changes
-		const dep = [conversation.messages.length, conversation.thinking];
+		// re-run whenever the message list, thinking indicator, or turn-error
+		// notice changes
+		const dep = [conversation.messages.length, conversation.thinking, conversation.turnError];
 		if (session.search.active || !dep) return;
 		const el = canvas;
 		if (!el) return;
@@ -273,6 +274,19 @@
 						{/each}
 						{#if conversation.thinking}
 							<Thinking />
+						{/if}
+						{#if conversation.turnError}
+							<!-- run ditutup server dengan error setelah pesan human tercatat:
+							     pesannya terkirim (jangan tandai gagal), tapi balasan tidak
+							     akan datang — beri tahu, jangan diam. -->
+							<div class="turn-error" role="status">
+								<Icon name="alert" size={14} />
+								<span
+									>{conversation.turnError.note === 'saldo'
+										? 'Pesan terkirim, tapi saldo tidak cukup untuk balasan agent — isi ulang dulu ya.'
+										: 'Pesan terkirim, tapi agent gagal membalas — ada gangguan di server. Coba lagi nanti ya.'}</span
+								>
+							</div>
 						{/if}
 					</div>
 				{/if}
