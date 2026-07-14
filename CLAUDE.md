@@ -57,12 +57,11 @@ File inti:
 - `src/lib/stores/postera.svelte.js` — `GET /postera`, batal `DELETE
 /postera/{id}`.
 - `src/lib/stores/knowledge.svelte.js` — knowledge graph (`GET /knowledge` →
-  `{nodes, edges}` Zep) untuk modal Knowledge Graph; dimuat lazy saat modal
-  dibuka (bukan saat login), 404 = graf belum ada = kosong. **Zep meng-cap
-  tiap halaman di 50 item apa pun `limit`-nya**, jadi graf ditarik berhalaman
-  (`node_cursor`/`edge_cursor` — dua daftar independen, cursor masing-masing)
-  sampai halaman tak menyumbang item baru; guard itu juga menghentikan loop
-  di backend lama yang belum mengenal cursor terpisah.
+  graf UTUH `{nodes, edges}`; backend yang menguras halaman Zep — pagination
+  bukan urusan FE) untuk modal Knowledge Graph; dimuat lazy saat modal dibuka
+  (bukan saat login), 404 = graf belum ada = kosong. Node tanpa satu edge pun
+  disaring (paritas explorer Zep: graf utuh selalu tersambung; yatim =
+  artefak data) — kecuali graf memang tanpa edge sama sekali.
 - `src/lib/stores/session.svelte.js` — auth gate + `profile` (nama/email dari
   akun Google); saat login memicu load semua store, saat logout me-reset-nya.
 - `src/routes/[integration]/link/callback/+page.svelte` — halaman callback OAuth
