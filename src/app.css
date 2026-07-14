@@ -3413,67 +3413,97 @@ mark.ta-mention-partial {
 	transition: opacity 0.18s var(--ease);
 }
 .kg-node circle {
-	stroke-width: 1.5;
+	stroke-width: 1.4;
+	transition: stroke-width 0.15s var(--ease);
 }
-.kg-node.focus circle {
-	stroke-width: 2.5;
+.kg-node.hover circle,
+.kg-node.focus circle,
+.kg-node.endpoint circle {
+	stroke-width: 2.4;
 }
 .kg-node.dim {
-	opacity: 0.18;
+	opacity: 0.1;
 }
+/* label node: default hanya hub (.labeled); semua saat zoom cukup dekat
+   (.kg-canvas.zoomed) atau saat node di-hover/dipilih/jadi ujung edge */
 .kg-node-label {
 	font-family: var(--sans);
-	font-size: 10.5px;
+	font-size: 10px;
 	fill: var(--ink-soft);
 	text-anchor: middle;
 	pointer-events: none;
 	user-select: none;
+	opacity: 0;
+	transition: opacity 0.2s var(--ease);
 	/* halo warna kanvas supaya label tetap terbaca di atas garis edge */
 	paint-order: stroke;
 	stroke: var(--surface-2);
 	stroke-width: 3px;
 	stroke-linejoin: round;
 }
+.kg-node.labeled .kg-node-label,
+.kg-node.hover .kg-node-label,
+.kg-node.focus .kg-node-label,
+.kg-node.endpoint .kg-node-label,
+.kg-canvas.zoomed .kg-node-label {
+	opacity: 1;
+}
+.kg-node.labeled .kg-node-label {
+	font-weight: 500;
+	font-size: 10.5px;
+}
 .kg-edge {
 	transition: opacity 0.18s var(--ease);
 }
 .kg-edge-line {
+	fill: none;
 	stroke: var(--line-strong);
-	stroke-width: 1.2;
+	stroke-width: 1.1;
 }
 .kg-edge-line.expired {
 	stroke-dasharray: 4 3;
 	opacity: 0.55;
 }
 .kg-edge.lit .kg-edge-line {
-	stroke: var(--accent);
-	stroke-width: 1.8;
+	stroke: var(--accent-deep);
+	stroke-width: 2.2;
+	opacity: 1;
 }
 .kg-edge.dim {
-	opacity: 0.12;
+	opacity: 0.05;
 }
 .kg-edge-hit {
+	fill: none;
 	stroke: transparent;
 	stroke-width: 12;
+	pointer-events: stroke;
 	cursor: pointer;
 }
-.kg-edge-labels {
-	transition: opacity 0.25s var(--ease);
-}
+/* nama relasi: tampil saat edge-nya menyala (hover/terpilih) atau saat
+   zoom sangat dekat (.kg-canvas.zoomed-in) */
 .kg-edge-label {
 	font-family: var(--sans);
-	font-size: 8.5px;
-	fill: var(--ink-faint);
+	font-size: 9px;
+	fill: var(--ink-muted);
 	text-anchor: middle;
 	pointer-events: none;
 	user-select: none;
+	opacity: 0;
+	transition: opacity 0.2s var(--ease);
 	paint-order: stroke;
 	stroke: var(--surface-2);
-	stroke-width: 2.5px;
+	stroke-width: 3px;
 	stroke-linejoin: round;
 }
-.kg-edge-label.dim {
-	opacity: 0.15;
+.kg-edge-label.lit,
+.kg-canvas.zoomed-in .kg-edge-label:not(.dim) {
+	opacity: 1;
+}
+.kg-edge-label.lit {
+	fill: var(--accent-deep);
+	font-weight: 600;
+	font-size: 9.5px;
+	letter-spacing: 0.04em;
 }
 
 /* legend label entitas — kiri-atas kanvas */

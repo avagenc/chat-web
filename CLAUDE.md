@@ -56,11 +56,13 @@ File inti:
   ini (`GET /wallet/usage/today`); di-refresh setelah tiap giliran agent.
 - `src/lib/stores/postera.svelte.js` — `GET /postera`, batal `DELETE
 /postera/{id}`.
-- `src/lib/stores/knowledge.svelte.js` — knowledge graph (`GET
-/knowledge?limit=500` → `{nodes, edges}` Zep) untuk modal Knowledge Graph;
-  dimuat lazy saat modal dibuka (bukan saat login), 404 = graf belum ada =
-  kosong. Satu tarikan tanpa cursor: handler backend memakai query yang sama
-  untuk nodes & edges, jadi pagination satu-cursor tidak koheren.
+- `src/lib/stores/knowledge.svelte.js` — knowledge graph (`GET /knowledge` →
+  `{nodes, edges}` Zep) untuk modal Knowledge Graph; dimuat lazy saat modal
+  dibuka (bukan saat login), 404 = graf belum ada = kosong. **Zep meng-cap
+  tiap halaman di 50 item apa pun `limit`-nya**, jadi graf ditarik berhalaman
+  (`node_cursor`/`edge_cursor` — dua daftar independen, cursor masing-masing)
+  sampai halaman tak menyumbang item baru; guard itu juga menghentikan loop
+  di backend lama yang belum mengenal cursor terpisah.
 - `src/lib/stores/session.svelte.js` — auth gate + `profile` (nama/email dari
   akun Google); saat login memicu load semua store, saat logout me-reset-nya.
 - `src/routes/[integration]/link/callback/+page.svelte` — halaman callback OAuth
@@ -270,12 +272,18 @@ OAuth, dan `/link/callback/[integration]` halaman callback OAuth linking.)
     `KnowledgeGraph.svelte`: D3 force-directed layout (pendekatan yang sama
     dengan graph explorer Zep, `getzep/zep-graph-visualization`) — D3 memiliki
     DOM di dalam `<svg>`, Svelte memegang overlay (legend label ber-hue,
-    kontrol zoom/fit, kartu detail). Interaksi: scroll/pinch zoom, drag pan,
-    drag node, klik node/edge → fokus (non-tetangga diredupkan) + kartu detail
-    (summary/fact + validitas); nama relasi muncul saat zoom-in; edge
-    invalid/expired digambar dashed. Reduced-motion: simulasi di-settle penuh
-    sebelum render (layout statis, tanpa goyangan). Data di-refresh tiap modal
-    dibuka; Esc/scrim/tombol × menutup.
+    kontrol zoom/fit, kartu detail). Gaya Zep: gravitasi `forceX/forceY` ke
+    pusat (hairball kompak, node yatim mengorbit — BUKAN `forceCenter` yang
+    membiarkan komponen lepas terbang jauh); ukuran node ∝ √degree; edge
+    paralel (banyak fact per pasangan node) digambar arc melengkung offset
+    bertingkat; label node default hanya hub (semua saat `k≥1.5` atau
+    hover/fokus), nama relasi saat edge menyala atau `k≥2.2`. Interaksi:
+    scroll/pinch zoom, drag pan, drag node, hover node/edge → highlight, klik
+    node/edge → fokus (sisanya diredupkan kuat, edge terpilih menyala +
+    nama relasi + label kedua ujung) + kartu detail (summary/fact +
+    validitas); edge invalid/expired dashed. Reduced-motion: simulasi
+    di-settle penuh sebelum render (layout statis, tanpa goyangan). Data
+    di-refresh tiap modal dibuka; Esc/scrim/tombol × menutup.
 
 ## Interaksi & perilaku
 
