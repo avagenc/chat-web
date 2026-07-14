@@ -21,6 +21,11 @@
 		"@tailwindcss/forms": "^0.5.11",
 		"@tailwindcss/typography": "^0.5.19",
 		"@tailwindcss/vite": "^4.2.2",
+		"@types/d3-drag": "^3.0.7",
+		"@types/d3-force": "^3.0.10",
+		"@types/d3-selection": "^3.0.11",
+		"@types/d3-transition": "^3.0.9",
+		"@types/d3-zoom": "^3.0.8",
 		"@types/node": "^24",
 		"eslint": "^10.4.0",
 		"eslint-config-prettier": "^10.1.8",
@@ -37,6 +42,11 @@
 		"vite": "^8.0.7"
 	},
 	"dependencies": {
+		"d3-drag": "^3.0.0",
+		"d3-force": "^3.0.0",
+		"d3-selection": "^3.0.0",
+		"d3-transition": "^3.0.1",
+		"d3-zoom": "^3.0.0",
 		"firebase": "^12.15.0"
 	}
 }

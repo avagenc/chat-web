@@ -12,6 +12,7 @@
    Pesan human yang baru dikirim di-render optimistis (status "sending")
    sampai muncul di thread server — id lokalnya diprefiks "local-" dan tidak
    pernah dipersist; id pesan server = UUID Zep. */
+import { SvelteSet } from 'svelte/reactivity';
 import { AGENTS, clockTime, routeAgent } from '../agents.js';
 import { api, ApiError } from '../api.js';
 import { wallet } from './wallet.svelte.js';
@@ -35,7 +36,7 @@ let pending = $state(null);
     di thread dengan teks sama tapi id di luar himpunan ini = pesan kita yang
     baru mendarat — bukan pesan lama yang kebetulan teksnya identik.
     @type {Set<string>} */
-let pendingBaseline = new Set();
+let pendingBaseline = new SvelteSet();
 // indikator processing umum (satu untuk semua agent — orkestrasi terjadi di
 // server, giliran agent sesungguhnya muncul lewat poll thread)
 let thinking = $state(false);
@@ -45,6 +46,13 @@ let busy = $state(false);
 // riwayat pertama sudah termuat (atau dipastikan kosong) — dipakai menahan
 // empty-state supaya tidak berkedip sebelum fetch pertama selesai.
 let loaded = $state(false);
+/** Giliran yang ditutup server dengan error SETELAH pesan human tercatat di
+    thread (mis. 502 model provider tumbang, 402 saldo habis di tengah run).
+    Pesannya sendiri TERKIRIM — salah kalau ditandai "Gagal terkirim" — tapi
+    balasan agent tidak akan pernah datang, jadi diam saja menyesatkan.
+    Dirender sebagai notice di bawah thread; hangus saat giliran berikut.
+    @type {{ note: 'saldo' | 'server' } | null} */
+let turnError = $state(null);
 
 /**
  * Pesan thread Zep → pesan UI.
@@ -150,6 +158,7 @@ async function fetchThread() {
 async function runTurn(text, msg, agent) {
 	busy = true;
 	thinking = true;
+	turnError = null; // giliran baru dimulai — notice giliran lama hangus
 	const controller = new AbortController();
 	turnController = controller;
 	// poll thread selama orkestrasi supaya giliran delegasi/specialist muncul live
@@ -189,7 +198,13 @@ async function runTurn(text, msg, agent) {
 			if (e instanceof ApiError && e.status === 402) {
 				msg.errorNote = 'saldo';
 			}
-		} else if (!(e instanceof ApiError)) {
+		} else if (e instanceof ApiError) {
+			// Server menutup run dengan error PADAHAL pesan human sudah tercatat:
+			// balasan tidak akan datang, dan "Coba lagi" bukan jalan keluar
+			// (re-POST = pesan dobel). Kabari lewat notice giliran, bukan
+			// menandai pesannya gagal — pesannya sendiri sudah terkirim.
+			turnError = { note: e.status === 402 ? 'saldo' : 'server' };
+		} else {
 			// Error jaringan di sisi kita, tapi pesan sudah tercatat: orkestrasi
 			// kemungkinan masih berjalan di server tanpa kita pegang HTTP-nya.
 			// Biarkan poller tetap hidup sebentar supaya giliran delegasi/balasan
@@ -221,6 +236,9 @@ export const conversation = {
 	get loaded() {
 		return loaded;
 	},
+	get turnError() {
+		return turnError;
+	},
 	get empty() {
 		return loaded && serverMsgs.length === 0 && !pending && !thinking;
 	},
@@ -250,7 +268,7 @@ export const conversation = {
 			time: clockTime(undefined),
 			status: 'sending'
 		});
-		pendingBaseline = new Set(serverMsgs.map((m) => m.id));
+		pendingBaseline = new SvelteSet(serverMsgs.map((m) => m.id));
 		pending = msg;
 		// @mention specialist → langsung ke endpoint-nya; selain itu ke Ava.
 		await runTurn(trimmed, msg, routeAgent(trimmed));
@@ -303,18 +321,20 @@ export const conversation = {
 		}
 		serverMsgs = [];
 		pending = null;
-		pendingBaseline = new Set();
+		pendingBaseline = new SvelteSet();
 		thinking = false;
 		busy = false;
+		turnError = null;
 	},
 
 	/** Reset state lokal (dipanggil saat logout). */
 	reset() {
 		serverMsgs = [];
 		pending = null;
-		pendingBaseline = new Set();
+		pendingBaseline = new SvelteSet();
 		thinking = false;
 		busy = false;
 		loaded = false;
+		turnError = null;
 	}
 };

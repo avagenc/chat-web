@@ -11,6 +11,7 @@ import { watchAuth, signInWithGoogle, signOutFirebase, getIdToken } from '../fir
 import { conversation } from './conversation.svelte.js';
 import { posteraStore } from './postera.svelte.js';
 import { wallet } from './wallet.svelte.js';
+import { knowledgeStore } from './knowledge.svelte.js';
 
 /** @type {import('firebase/auth').User | null} */
 let user = $state(null);
@@ -43,6 +44,8 @@ if (browser) {
 			conversation.reset();
 			posteraStore.reset();
 			wallet.reset();
+			knowledgeStore.reset();
+			graphOpen = false;
 		}
 	}).catch(() => {
 		// init Firebase gagal (mis. chunk diblokir/offline): tetap tandai ready
@@ -58,6 +61,8 @@ let panel = $state(null);
 let view = $state('chat');
 /** @type {string|null} */
 let lightbox = $state(null); // image src
+// modal fokus Knowledge Graph (overlay di atas apa pun, bukan panel/view)
+let graphOpen = $state(false);
 /** @type {string|null} */
 let toast = $state(null);
 let search = $state({ active: false, query: '', idx: 0 });
@@ -109,6 +114,12 @@ export const session = {
 	},
 	set lightbox(v) {
 		lightbox = v;
+	},
+	get graphOpen() {
+		return graphOpen;
+	},
+	set graphOpen(v) {
+		graphOpen = v;
 	},
 	get toast() {
 		return toast;

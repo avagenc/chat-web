@@ -56,6 +56,12 @@ File inti:
   ini (`GET /wallet/usage/today`); di-refresh setelah tiap giliran agent.
 - `src/lib/stores/postera.svelte.js` — `GET /postera`, batal `DELETE
 /postera/{id}`.
+- `src/lib/stores/knowledge.svelte.js` — knowledge graph (`GET /knowledge` →
+  graf UTUH `{nodes, edges}`; backend yang menguras halaman Zep — pagination
+  bukan urusan FE) untuk modal Knowledge Graph; dimuat lazy saat modal dibuka
+  (bukan saat login), 404 = graf belum ada = kosong. Node tanpa satu edge pun
+  disaring (paritas explorer Zep: graf utuh selalu tersambung; yatim =
+  artefak data) — kecuali graf memang tanpa edge sama sekali.
 - `src/lib/stores/session.svelte.js` — auth gate + `profile` (nama/email dari
   akun Google); saat login memicu load semua store, saat logout me-reset-nya.
 - `src/routes/[integration]/link/callback/+page.svelte` — halaman callback OAuth
@@ -82,6 +88,12 @@ Setiap agent punya variabel warna CSS `--<id>` di `src/app.css` (mis. `--ava`, `
 - **402 dari backend = saldo habis** — `sendText` menandai pesan `error` +
   `errorNote:'saldo'`; wallet & top-up yang jadi jalur pulihnya (pembayaran
   masih stub Midtrans).
+- **`turnError`** (`conversation.svelte.js`): run yang ditutup server dengan
+  `ApiError` SETELAH pesan human tercatat di thread (mis. 502 kuota model
+  provider habis, 402 di tengah run) ≠ pesan gagal terkirim — pesan TIDAK
+  ditandai error (re-POST = pesan dobel), tapi balasan juga tidak akan datang,
+  jadi diam saja menyesatkan. FE merender notice `.turn-error` di bawah thread
+  (copy per `note: 'saldo'|'server'`); hangus saat giliran berikut dimulai.
 - **ID pesan** = UUID Zep (string); pesan optimistis pakai prefix `local-`.
   Jangan kembali ke counter angka.
 
@@ -188,7 +200,9 @@ OAuth, dan `/link/callback/[integration]` halaman callback OAuth linking.)
    `.app::before`. Panel kiri/kanan adalah **side-dock** (bukan overlay, tanpa
    scrim) yang mendorong kanvas via `--panel-left`/`--panel-right`, transisi 0.30s.
    Chrome mengambang (tanpa top bar): `.wordmark-float` kiri-atas (buka chat-info),
-   `.fixed-settings` kanan-atas (hourglass → Postera, ada badge kalau count>0),
+   `.fixed-settings` kanan-atas — dua tombol: ikon graph di pojok (buka modal
+   Knowledge Graph) dan hourglass ber-`.fs-shifted` di kirinya (→ Postera, ada
+   badge kalau count>0),
    `.fixed-profile` kiri-bawah (avatar → Profile), `.usage-widget` pill "Rp",
    `.top-fade` gradien atas. Kanvas: kolom scroll `max-width:720px`, `.daydivider`
    di atas. Empty state: mark aksen + greeting serif 27px + 3 `.chip` suggestion.
@@ -251,6 +265,24 @@ OAuth, dan `/link/callback/[integration]` halaman callback OAuth linking.)
    accordion: pill `awaken_at` (hue Ava; "HH:MM" hari ini, "5 Jul · HH:MM"
    selain itu), preview, chevron; expanded ada tombol "Batalkan posterum"
    (→ `ActionConfirm` → `DELETE /postera/{id}`). Empty state kalau kosong.
+10. **Knowledge Graph modal** (`.kg-modal`, `KnowledgeGraphModal.svelte`):
+    tombol ikon graph pojok kanan-atas → focused modal besar (scrim
+    `topup-scrim`), bukan halaman baru. Graf dari `knowledgeStore`; kanvas =
+    `KnowledgeGraph.svelte`: D3 force-directed layout (pendekatan yang sama
+    dengan graph explorer Zep, `getzep/zep-graph-visualization`) — D3 memiliki
+    DOM di dalam `<svg>`, Svelte memegang overlay (legend label ber-hue,
+    kontrol zoom/fit, kartu detail). Gaya Zep: gravitasi `forceX/forceY` ke
+    pusat (hairball kompak, node yatim mengorbit — BUKAN `forceCenter` yang
+    membiarkan komponen lepas terbang jauh); ukuran node ∝ √degree; edge
+    paralel (banyak fact per pasangan node) digambar arc melengkung offset
+    bertingkat; label node default hanya hub (semua saat `k≥1.5` atau
+    hover/fokus), nama relasi saat edge menyala atau `k≥2.2`. Interaksi:
+    scroll/pinch zoom, drag pan, drag node, hover node/edge → highlight, klik
+    node/edge → fokus (sisanya diredupkan kuat, edge terpilih menyala +
+    nama relasi + label kedua ujung) + kartu detail (summary/fact +
+    validitas); edge invalid/expired dashed. Reduced-motion: simulasi
+    di-settle penuh sebelum render (layout statis, tanpa goyangan). Data
+    di-refresh tiap modal dibuka; Esc/scrim/tombol × menutup.
 
 ## Interaksi & perilaku
 
@@ -273,8 +305,10 @@ OAuth, dan `/link/callback/[integration]` halaman callback OAuth linking.)
   mendarat (dicek via `pendingBaseline`, himpunan id server saat kirim), tidak
   ada re-POST — mengirim ulang berarti pesan dobel & agent terpicu dua kali.
   Error non-`ApiError` (jaringan) dengan pesan sudah mendarat → poller
-  dibiarkan hidup ~90s (orkestrasi mungkin masih jalan di server). 402 →
-  `errorNote:'saldo'` (copy khusus di `.msg-meta`).
+  dibiarkan hidup ~90s (orkestrasi mungkin masih jalan di server). `ApiError`
+  dengan pesan sudah mendarat → server menutup run dengan error; balasan tidak
+  akan datang → set `turnError` (notice di bawah thread), pesan tetap tampil
+  normal. 402 → `errorNote:'saldo'` (copy khusus di `.msg-meta`).
 - **Search**: buka search sembunyikan composer/chrome; `matches` = id pesan yang
   teks/caption-nya memuat query (case-insensitive); `↑/↓`/Enter cycle; match aktif
   scroll ke tengah + `.active-match`.
@@ -302,8 +336,12 @@ Global (module/store level):
 - `messages` — dari thread backend + pesan optimistis; `{ id, from, type:'text',
 text, time, at?, status?, errorNote? }`
 - `thinking: boolean` (indikator processing umum), `busy`, `loaded`
+- `turnError: { note: 'saldo' | 'server' } | null` — run ditutup server dengan
+  error setelah pesan human tercatat (notice `.turn-error` di bawah thread)
 - `panel: 'profile' | 'postera' | null`
 - `view: 'chat' | 'info'`
+- `graphOpen: boolean` — modal Knowledge Graph (overlay, independen dari panel/view)
+- `knowledge` — `{nodes, edges, loaded, error}` dari `GET /knowledge` (lazy)
 - `lightbox: src | null`, `toast: string | null`
 - `search: { active, query, idx }`
 - `postera` — `{ id, message, awaken_at }` dari `GET /postera`

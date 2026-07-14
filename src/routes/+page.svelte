@@ -14,6 +14,7 @@
 	import ChatInfoPage from '$lib/panels/ChatInfoPage.svelte';
 	import ProfilePanel from '$lib/panels/ProfilePanel.svelte';
 	import PosteraPanel from '$lib/panels/PosteraPanel.svelte';
+	import KnowledgeGraphModal from '$lib/panels/KnowledgeGraphModal.svelte';
 
 	/** @type {HTMLElement|null} */
 	let canvas = $state(null);
@@ -36,8 +37,9 @@
 
 	// autoscroll on new message / thinking change (not while searching)
 	$effect(() => {
-		// re-run whenever the message list or thinking indicator changes
-		const dep = [conversation.messages.length, conversation.thinking];
+		// re-run whenever the message list, thinking indicator, or turn-error
+		// notice changes
+		const dep = [conversation.messages.length, conversation.thinking, conversation.turnError];
 		if (session.search.active || !dep) return;
 		const el = canvas;
 		if (!el) return;
@@ -155,10 +157,10 @@
 			{/if}
 		{/if}
 
-		<!-- top-right: postera -->
+		<!-- top-right: postera + knowledge graph (graph di samping kanan postera) -->
 		{#if !session.search.active && session.panel !== 'postera'}
 			<button
-				class="fixed-settings"
+				class="fixed-settings fs-shifted"
 				onclick={() => (session.panel = 'postera')}
 				aria-label="Postera Ava"
 			>
@@ -166,6 +168,15 @@
 				{#if posteraStore.list.length > 0}
 					<span class="postera-badge">{posteraStore.list.length}</span>
 				{/if}
+			</button>
+		{/if}
+		{#if !session.search.active}
+			<button
+				class="fixed-settings"
+				onclick={() => (session.graphOpen = true)}
+				aria-label="Knowledge graph"
+			>
+				<Icon name="graph" size={17} stroke={1.7} />
 			</button>
 		{/if}
 
@@ -274,6 +285,19 @@
 						{#if conversation.thinking}
 							<Thinking />
 						{/if}
+						{#if conversation.turnError}
+							<!-- run ditutup server dengan error setelah pesan human tercatat:
+							     pesannya terkirim (jangan tandai gagal), tapi balasan tidak
+							     akan datang — beri tahu, jangan diam. -->
+							<div class="turn-error" role="status">
+								<Icon name="alert" size={14} />
+								<span
+									>{conversation.turnError.note === 'saldo'
+										? 'Pesan terkirim, tapi saldo tidak cukup untuk balasan agent — isi ulang dulu ya.'
+										: 'Pesan terkirim, tapi agent gagal membalas — ada gangguan di server. Coba lagi nanti ya.'}</span
+								>
+							</div>
+						{/if}
 					</div>
 				{/if}
 			</main>
@@ -305,6 +329,9 @@
 
 		{#if session.lightbox}
 			<Lightbox src={session.lightbox} onClose={() => (session.lightbox = null)} />
+		{/if}
+		{#if session.graphOpen}
+			<KnowledgeGraphModal onClose={() => (session.graphOpen = false)} />
 		{/if}
 	</div>
 {/if}
