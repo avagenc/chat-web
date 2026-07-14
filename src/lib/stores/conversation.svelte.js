@@ -12,6 +12,7 @@
    Pesan human yang baru dikirim di-render optimistis (status "sending")
    sampai muncul di thread server — id lokalnya diprefiks "local-" dan tidak
    pernah dipersist; id pesan server = UUID Zep. */
+import { SvelteSet } from 'svelte/reactivity';
 import { AGENTS, clockTime, routeAgent } from '../agents.js';
 import { api, ApiError } from '../api.js';
 import { wallet } from './wallet.svelte.js';
@@ -35,7 +36,7 @@ let pending = $state(null);
     di thread dengan teks sama tapi id di luar himpunan ini = pesan kita yang
     baru mendarat — bukan pesan lama yang kebetulan teksnya identik.
     @type {Set<string>} */
-let pendingBaseline = new Set();
+let pendingBaseline = new SvelteSet();
 // indikator processing umum (satu untuk semua agent — orkestrasi terjadi di
 // server, giliran agent sesungguhnya muncul lewat poll thread)
 let thinking = $state(false);
@@ -267,7 +268,7 @@ export const conversation = {
 			time: clockTime(undefined),
 			status: 'sending'
 		});
-		pendingBaseline = new Set(serverMsgs.map((m) => m.id));
+		pendingBaseline = new SvelteSet(serverMsgs.map((m) => m.id));
 		pending = msg;
 		// @mention specialist → langsung ke endpoint-nya; selain itu ke Ava.
 		await runTurn(trimmed, msg, routeAgent(trimmed));
@@ -320,7 +321,7 @@ export const conversation = {
 		}
 		serverMsgs = [];
 		pending = null;
-		pendingBaseline = new Set();
+		pendingBaseline = new SvelteSet();
 		thinking = false;
 		busy = false;
 		turnError = null;
@@ -330,7 +331,7 @@ export const conversation = {
 	reset() {
 		serverMsgs = [];
 		pending = null;
-		pendingBaseline = new Set();
+		pendingBaseline = new SvelteSet();
 		thinking = false;
 		busy = false;
 		loaded = false;
