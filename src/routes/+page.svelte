@@ -14,6 +14,7 @@
 	import ChatInfoPage from '$lib/panels/ChatInfoPage.svelte';
 	import ProfilePanel from '$lib/panels/ProfilePanel.svelte';
 	import PosteraPanel from '$lib/panels/PosteraPanel.svelte';
+	import KnowledgeGraphModal from '$lib/panels/KnowledgeGraphModal.svelte';
 
 	/** @type {HTMLElement|null} */
 	let canvas = $state(null);
@@ -156,10 +157,10 @@
 			{/if}
 		{/if}
 
-		<!-- top-right: postera -->
+		<!-- top-right: postera + knowledge graph (graph di samping kanan postera) -->
 		{#if !session.search.active && session.panel !== 'postera'}
 			<button
-				class="fixed-settings"
+				class="fixed-settings fs-shifted"
 				onclick={() => (session.panel = 'postera')}
 				aria-label="Postera Ava"
 			>
@@ -167,6 +168,15 @@
 				{#if posteraStore.list.length > 0}
 					<span class="postera-badge">{posteraStore.list.length}</span>
 				{/if}
+			</button>
+		{/if}
+		{#if !session.search.active}
+			<button
+				class="fixed-settings"
+				onclick={() => (session.graphOpen = true)}
+				aria-label="Knowledge graph"
+			>
+				<Icon name="graph" size={17} stroke={1.7} />
 			</button>
 		{/if}
 
@@ -319,6 +329,9 @@
 
 		{#if session.lightbox}
 			<Lightbox src={session.lightbox} onClose={() => (session.lightbox = null)} />
+		{/if}
+		{#if session.graphOpen}
+			<KnowledgeGraphModal onClose={() => (session.graphOpen = false)} />
 		{/if}
 	</div>
 {/if}

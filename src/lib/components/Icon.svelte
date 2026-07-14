@@ -92,5 +92,22 @@
 		<circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" />
 	{:else if name === 'hourglass'}
 		<path d="M6 3h12M6 21h12M6 3l6 9 6-9M6 21l6-9 6 9" />
+	{:else if name === 'graph'}
+		<circle cx="6" cy="6" r="2.4" /><circle cx="18" cy="9" r="2.4" /><circle
+			cx="10"
+			cy="18"
+			r="2.4"
+		/>
+		<line x1="8.3" y1="6.8" x2="15.7" y2="8.4" /><line x1="6.9" y1="8.3" x2="9.3" y2="15.8" /><line
+			x1="16.6"
+			y1="10.9"
+			x2="11.5"
+			y2="16.2"
+		/>
+	{:else if name === 'minus'}
+		<line x1="5" y1="12" x2="19" y2="12" />
+	{:else if name === 'frame'}
+		<path d="M4 9V5.5A1.5 1.5 0 0 1 5.5 4H9" /><path d="M15 4h3.5A1.5 1.5 0 0 1 20 5.5V9" />
+		<path d="M20 15v3.5a1.5 1.5 0 0 1-1.5 1.5H15" /><path d="M9 20H5.5A1.5 1.5 0 0 1 4 18.5V15" />
 	{/if}
 </svg>

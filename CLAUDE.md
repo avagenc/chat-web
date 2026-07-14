@@ -56,6 +56,11 @@ File inti:
   ini (`GET /wallet/usage/today`); di-refresh setelah tiap giliran agent.
 - `src/lib/stores/postera.svelte.js` — `GET /postera`, batal `DELETE
 /postera/{id}`.
+- `src/lib/stores/knowledge.svelte.js` — knowledge graph (`GET
+/knowledge?limit=500` → `{nodes, edges}` Zep) untuk modal Knowledge Graph;
+  dimuat lazy saat modal dibuka (bukan saat login), 404 = graf belum ada =
+  kosong. Satu tarikan tanpa cursor: handler backend memakai query yang sama
+  untuk nodes & edges, jadi pagination satu-cursor tidak koheren.
 - `src/lib/stores/session.svelte.js` — auth gate + `profile` (nama/email dari
   akun Google); saat login memicu load semua store, saat logout me-reset-nya.
 - `src/routes/[integration]/link/callback/+page.svelte` — halaman callback OAuth
@@ -194,7 +199,9 @@ OAuth, dan `/link/callback/[integration]` halaman callback OAuth linking.)
    `.app::before`. Panel kiri/kanan adalah **side-dock** (bukan overlay, tanpa
    scrim) yang mendorong kanvas via `--panel-left`/`--panel-right`, transisi 0.30s.
    Chrome mengambang (tanpa top bar): `.wordmark-float` kiri-atas (buka chat-info),
-   `.fixed-settings` kanan-atas (hourglass → Postera, ada badge kalau count>0),
+   `.fixed-settings` kanan-atas — dua tombol: ikon graph di pojok (buka modal
+   Knowledge Graph) dan hourglass ber-`.fs-shifted` di kirinya (→ Postera, ada
+   badge kalau count>0),
    `.fixed-profile` kiri-bawah (avatar → Profile), `.usage-widget` pill "Rp",
    `.top-fade` gradien atas. Kanvas: kolom scroll `max-width:720px`, `.daydivider`
    di atas. Empty state: mark aksen + greeting serif 27px + 3 `.chip` suggestion.
@@ -257,6 +264,18 @@ OAuth, dan `/link/callback/[integration]` halaman callback OAuth linking.)
    accordion: pill `awaken_at` (hue Ava; "HH:MM" hari ini, "5 Jul · HH:MM"
    selain itu), preview, chevron; expanded ada tombol "Batalkan posterum"
    (→ `ActionConfirm` → `DELETE /postera/{id}`). Empty state kalau kosong.
+10. **Knowledge Graph modal** (`.kg-modal`, `KnowledgeGraphModal.svelte`):
+    tombol ikon graph pojok kanan-atas → focused modal besar (scrim
+    `topup-scrim`), bukan halaman baru. Graf dari `knowledgeStore`; kanvas =
+    `KnowledgeGraph.svelte`: D3 force-directed layout (pendekatan yang sama
+    dengan graph explorer Zep, `getzep/zep-graph-visualization`) — D3 memiliki
+    DOM di dalam `<svg>`, Svelte memegang overlay (legend label ber-hue,
+    kontrol zoom/fit, kartu detail). Interaksi: scroll/pinch zoom, drag pan,
+    drag node, klik node/edge → fokus (non-tetangga diredupkan) + kartu detail
+    (summary/fact + validitas); nama relasi muncul saat zoom-in; edge
+    invalid/expired digambar dashed. Reduced-motion: simulasi di-settle penuh
+    sebelum render (layout statis, tanpa goyangan). Data di-refresh tiap modal
+    dibuka; Esc/scrim/tombol × menutup.
 
 ## Interaksi & perilaku
 
@@ -314,6 +333,8 @@ text, time, at?, status?, errorNote? }`
   error setelah pesan human tercatat (notice `.turn-error` di bawah thread)
 - `panel: 'profile' | 'postera' | null`
 - `view: 'chat' | 'info'`
+- `graphOpen: boolean` — modal Knowledge Graph (overlay, independen dari panel/view)
+- `knowledge` — `{nodes, edges, loaded, error}` dari `GET /knowledge` (lazy)
 - `lightbox: src | null`, `toast: string | null`
 - `search: { active, query, idx }`
 - `postera` — `{ id, message, awaken_at }` dari `GET /postera`
